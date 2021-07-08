@@ -8,7 +8,6 @@ from db_structures import create_db
 
 db_name = 'test.db'
 
-
 def add_notebook(name):
     #config = {'get_lines_of_code': True, 'get_cell_language': False}
     config = {
