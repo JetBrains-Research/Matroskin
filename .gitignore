@@ -1,5 +1,5 @@
 *.db
-*.DS_Store
+.DS_Store
 *.json
 *.txt
 *.ipynb_checkpoints
