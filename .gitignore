@@ -1,0 +1,7 @@
+*.db
+*.DS_Store
+*.json
+*.txt
+*.ipynb_checkpoints
+*.idea
+__pycache__/
