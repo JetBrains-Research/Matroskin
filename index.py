@@ -6,6 +6,9 @@ import numpy as np
 from Notebook import Notebook
 from db_structures import create_db
 
+db_name = 'test.db'
+
+
 def add_notebook(name):
     #config = {'get_lines_of_code': True, 'get_cell_language': False}
     config = {
@@ -17,7 +20,7 @@ def add_notebook(name):
     try:
         nb = Notebook(name)
         log = nb.parse_features(config)
-        rows = nb.write_to_db()
+        rows = nb.write_to_db(db_name)
         return rows
     except Exception as e:
         with open("log.txt", "a") as f:
@@ -26,11 +29,20 @@ def add_notebook(name):
 
 
 def main():
+    get = True
+
+    if get:
+        notebook_id = 33
+        nb = Notebook(notebook_id, db_name)
+        print(nb.metadata)
+        print(np.array(nb.cells))
+        return
+
     with open('ntbs_list.json', 'r') as fp:
-        start, step = 0, 5
+        start, step = 0, 15
         ntb_list = json.load(fp)[start:start+step]
 
-    create_db('test.db')
+    create_db(db_name)
     res = []
     with tqdm(total=len(ntb_list)) as pbar:
         with Pool(processes=5) as pool:
@@ -40,6 +52,7 @@ def main():
                 pbar.update(1)
 
     print('Finishing...')
+    print(res)
     print('{} notebooks contain errors ({:.1f}%) '.format(
         len(res) - sum(res),
         (len(res) - sum(res)) / len(res) * 100
