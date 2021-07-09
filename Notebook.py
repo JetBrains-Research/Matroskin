@@ -1,14 +1,14 @@
-import urllib.request
 import nbformat
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
-
 import ast
 import spacy
 from spacy_langdetect import LanguageDetector
 from spacy.language import Language
+import re
 
 import db_structures
+import get_data
 
 
 @Language.factory('language_detector')
@@ -16,105 +16,50 @@ def language_detector(nlp, name):
     return LanguageDetector()
 
 
-def get_cell_language(cell):
-    if cell['type'] == 'markdown':
-        nlp = spacy.load('en_core_web_sm')
-        nlp.max_length = 2000000
-        nlp.add_pipe('language_detector', last=True)
-        doc = nlp(cell['source'])
-        return doc._.language['language']
-    else:
-        return None
-
-
 class Notebook(object):
     metadata = {}
     cells = []
 
     def __init__(self, name, db_name=''):
+        self.mapping = {
+            'code_instructions_count': self.get_num_instructions,
+            'code_lines_count': self.get_lines_of_code,
+            'cell_language': self.get_cell_language,
+            'code_imports': self.get_imports,
+            'code_chars_count': self.get_chars_of_code,
+            'sentences_count': self.get_sentences_count,
+            'unique_words': self.get_unique_words,
+            'content': self.get_md_content
+        }
+
+        self.engine = create_engine(f"sqlite:///{db_name}")
+        self.engine.dispose()
+
+        self.nlp = spacy.load('en_core_web_sm')  # TODO load only if in config
+        self.nlp.max_length = 2000000
+        self.nlp.add_pipe('language_detector', last=True)
+
         if isinstance(name, int):
-            success = self.get_from_db(name, db_name)
-            print(f'Notebook id = {name}: imported') if success else print('ERROR')
+            try:
+                data = get_data.NotebookReaderDb(name, db_name)  # TODO change copipaste
+                self.metadata = data.get_notebook
+                self.cells = data.get_cells
+            except Exception as e:
+                with open("log.txt", "a") as f:
+                    f.write(f'{name}\t{type(e).__name__}\n')
 
         elif isinstance(name, str):
-            self.mapping = {
-                'code_instructions_count': self.get_num_instructions,
-                'code_lines_count': self.get_lines_of_code,
-                'cell_language': get_cell_language,
-                'code_imports': self.get_imports
-            }
+            data = get_data.NotebookReaderAmazon(name)
+            self.metadata = data.get_notebook
+            self.cells = data.get_cells
 
-            self.metadata['name'] = name
-            notebook_string = self.download_notebook()
-            notebook = nbformat.reads(notebook_string, 4)
-            self.metadata['language'], self.metadata['version'] = self.get_kernel(notebook)
-            self.cells = self.get_cells(notebook)
-
-    def write_to_db(self, db_name):
-        engine = create_engine(f"sqlite:///{db_name}")
-        engine.dispose()
-        session = sessionmaker(bind=engine)()
+    def write_to_db(self):
+        session = sessionmaker(bind=self.engine)()
 
         with session as conn:
             self.metadata['id'] = self.write_notebook_to_db(conn)
             success = self.write_cells_to_db(conn)
         return success
-
-    def get_from_db(self, ntb_id, db_name):
-        engine = create_engine(f"sqlite:///{db_name}")
-        engine.dispose()
-        session = sessionmaker(bind=engine)()
-
-        with session as conn:
-            try:
-                ntb_row = conn.query(db_structures.NotebookDb). \
-                    where(db_structures.NotebookDb.notebook_id == ntb_id).first()
-                ntb = self.row_to_dict(ntb_row)
-            except AttributeError:
-                return 0
-
-            self.metadata = {
-                'id': ntb['notebook_id'],
-                'name': ntb['notebook_name'],
-                'language': ntb['notebook_language'],
-                'version': ntb['notebook_version']
-            }
-            success = self.get_cells_from_db(conn)
-
-        return success
-
-    def get_cells_from_db(self, conn):
-        cells_row = conn.query(db_structures.CellDb). \
-            where(db_structures.CellDb.notebook_id == self.metadata['id']).all()
-
-        for cell_row in cells_row:
-            cell = {'id': self.row_to_dict(cell_row).pop('cell_id')}
-            # print(cell['id'])
-
-            try_code = conn.query(db_structures.CodeCellDb). \
-                where(db_structures.CodeCellDb.cell_id == cell['id']).first()
-            if try_code:
-                cell['type'] = 'code'
-                cell_code = self.row_to_dict(try_code)
-                cell['num'] = cell_code['cell_num']
-                cell['source'] = cell_code['source']
-
-            else:
-                cell['type'] = 'markdown'
-                try_md = conn.query(db_structures.MdCellDb). \
-                    where(db_structures.MdCellDb.cell_id == cell['id']).first()
-                cell_md = self.row_to_dict(try_md)
-                cell['num'] = cell_md['cell_num']
-                cell['source'] = cell_md['source']
-            self.cells.append(cell)
-
-        return 1
-
-    def row_to_dict(self, row):
-        return dict(
-            (col, getattr(row, col))
-            for col in row.__table__.columns.keys()
-        )
 
     def write_notebook_to_db(self, conn):
         ntb = db_structures.NotebookDb(
@@ -163,31 +108,19 @@ class Notebook(object):
         return 1
 
     def write_md_cell_to_db(self, cell, conn):
-        # sentences_count = get_sentences_count(cell)
-        # language = get_language(cell)
-        # words = get_words(cell)
-        # cell_contents = get_md_contents(cell)
-        # unique_words = Counter(words)
-        # unique_string = " ".join(f"{key}-{value}" for key, value in unique_words.items())
         md_cell = db_structures.MdCellDb(
             cell_id=cell['id'],
             cell_num=cell['num'],
             source=cell['source']
         )
-        # conn.add(db_structures.MdCellDb(
-        #     cell_id=cell['id'],
-        #     cell_num=cell['num'],
-        #     sentences_count=0,  # sentences_count,
-        #     words_count=0,  # len(words),
-        #     unique_words='0',  # unique_string,
-        #     cell_language='en',  # language,
-        #     latex=False,  # cell_contents['latex'],
-        #     html=False,  # cell_contents['html'],
-        #     code=False,  # cell_contents['code'],
-        #     source=cell['source']
-        # ))
+
         for key in cell.keys():
             if key in dir(md_cell) and key in self.mapping:
+                if key == 'content':  # TODO reconsider handling content
+                    content = cell[key]
+                    for k, value in content.items():
+                        setattr(md_cell, k, value)
+                    continue
                 # print(f'{key} -> {cell[key]}')
                 setattr(md_cell, key, cell[key])
 
@@ -195,31 +128,56 @@ class Notebook(object):
         conn.commit()
         return 1
 
-    def download_notebook(self):
-        host = 'http://github-notebooks-update1.s3-eu-west-1.amazonaws.com/'
-        link = host + self.metadata['name']
-        with urllib.request.urlopen(link) as url:
-            notebook_string = url.read().decode()
-        return notebook_string
-
-    def get_cells(self, notebook: nbformat.NotebookNode) -> list:
-        notebook_cells = [{'type': cell.get('cell_type'),
-                           'source': cell.get('source'),
-                           'num': num}
-                          for num, cell in enumerate(notebook.get('cells'))]
-        return notebook_cells
-
-    def get_kernel(self, notebook: nbformat.NotebookNode):
-        kernel = notebook.get('metadata').get('language_info')
-        if not kernel:
-            return "None", "None"
-        return kernel.get("name"), kernel.get("version")
-
     def parse_features(self, config):
         for cell in self.cells:
             for function in {k: v for k, v in config.items() if v}:
                 cell[function] = self.mapping[function](cell)
         return self.cells
+
+    def get_cell_language(self, cell):
+        if cell['type'] == 'markdown':
+            doc = self.nlp(cell['source'])
+            return doc._.language['language']
+        else:
+            return None
+
+    def get_sentences_count(self, cell):
+        doc = self.nlp(cell['source'])
+        sentence_tokens = [[token.text for token in sent]
+                           for sent in doc.sents]
+        return len(sentence_tokens)
+
+    def get_unique_words(self, cell) -> str:
+        doc = self.nlp(cell['source'])
+
+        words = [token.text.lower()
+                 for token in doc
+                 if not token.is_stop and not token.is_punct]
+        unique_words = set(words)
+        return ' '.join(unique_words)
+
+    @staticmethod
+    def get_md_content(cell) -> dict:
+        latex_regex_1 = r'\$(.*)\$'
+        latex_regex_2 = r'\\begin(.*)\\end'
+
+        html_regex = r'<(.*)>'
+        code_regex = r'`(.*)`'
+        result = {
+            'latex': False,
+            'html': False,
+            'code': False
+        }
+
+        cell_text = cell['source'].replace('\n', '')
+        if re.findall(latex_regex_1, cell_text, re.MULTILINE) \
+                or re.findall(latex_regex_2, cell_text, re.MULTILINE):
+            result['latex'] = True
+        if re.findall(html_regex, cell_text, re.MULTILINE):
+            result['html'] = True
+        if re.findall(code_regex, cell_text, re.MULTILINE):
+            result['code'] = True
+        return result
 
     def get_ast(self, cell):
         try:
@@ -249,6 +207,13 @@ class Notebook(object):
                         for node in ast.walk(cell_ast)
                         if hasattr(node, 'lineno')],
                        default=0)
+        else:
+            return None
+
+    @staticmethod
+    def get_chars_of_code(cell):
+        if cell['type'] == 'code':
+            return len(cell['source'])
         else:
             return None
 

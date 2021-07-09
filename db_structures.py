@@ -37,7 +37,7 @@ class MdCellDb(base):
                      primary_key=True)
     cell_num = Column(Integer)
     sentences_count = Column(Integer, default=0)
-    words_count = Column(Integer, default=0)
+    # words_count = Column(Integer, default=0)
     unique_words = Column(Text, default='')
     cell_language = Column(String, default='')
     latex = Column(Boolean, default=False)

@@ -3,42 +3,63 @@ import time
 from multiprocessing import Pool
 from tqdm import tqdm
 import numpy as np
+import os.path
+
 from Notebook import Notebook
 from db_structures import create_db
 
-db_name = 'test.db'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_name = os.path.join(BASE_DIR, 'test.db')
+
 
 def add_notebook(name):
-    #config = {'get_lines_of_code': True, 'get_cell_language': False}
+    #  config = {'get_lines_of_code': True, 'get_cell_language': False}
+    # config = {
+    #     'code_instructions_count': True,
+    #     'code_lines_count': True,
+    #     'cell_language': True,
+    #     'code_imports': True,
+    #     'code_chars_count': True}
+
     config = {
         'code_instructions_count': True,
         'code_lines_count': True,
         'cell_language': False,
-        'code_imports': True}
+        'code_imports': True,
+        'code_chars_count': True,
+        'sentences_count': True,
+        'unique_words': False,
+        'content': False
+    }
 
     try:
-        nb = Notebook(name)
+        nb = Notebook(name, db_name)
         log = nb.parse_features(config)
-        rows = nb.write_to_db(db_name)
+        rows = nb.write_to_db()
         return rows
     except Exception as e:
         with open("log.txt", "a") as f:
-            f.write(f'{name}:\t{repr(e)}\n')
+            f.write(f'{name}\t{type(e).__name__}\n')
+            # f.write(f'{name}\t{str(e)}\n')
         return 0
+
+
+def get_notebook(notebook_id):
+    nb = Notebook(notebook_id, db_name)
+    print(f'{nb.metadata}\n{np.array(nb.cells)}')
+    return nb
 
 
 def main():
     get = True
+    notebook_id = 100
 
     if get:
-        notebook_id = 33
-        nb = Notebook(notebook_id, db_name)
-        print(nb.metadata)
-        print(np.array(nb.cells))
+        nb = get_notebook(notebook_id)
         return
 
     with open('ntbs_list.json', 'r') as fp:
-        start, step = 0, 15
+        start, step = 1000, 5
         ntb_list = json.load(fp)[start:start+step]
 
     create_db(db_name)
