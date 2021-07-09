@@ -1,16 +1,15 @@
 import nbformat
 import urllib.request
-from abc import ABCMeta, abstractmethod, abstractproperty
 import urllib.request
 import nbformat
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
+from abc import ABC
 
 import db_structures
 
 
-class NotebookReader:
-    __metaclass__ = ABCMeta
+class NotebookReader(ABC):
     _metadata = {}
     _cells = []
 

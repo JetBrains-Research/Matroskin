@@ -10,28 +10,19 @@ from db_structures import create_db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_name = os.path.join(BASE_DIR, 'test.db')
+config = {
+    'code_instructions_count': False,
+    'code_lines_count': False,
+    'cell_language': True,
+    'code_imports': False,
+    'code_chars_count': True,
+    'sentences_count': False,
+    'unique_words': False,
+    'content': False
+}
 
 
 def add_notebook(name):
-    #  config = {'get_lines_of_code': True, 'get_cell_language': False}
-    # config = {
-    #     'code_instructions_count': True,
-    #     'code_lines_count': True,
-    #     'cell_language': True,
-    #     'code_imports': True,
-    #     'code_chars_count': True}
-
-    config = {
-        'code_instructions_count': True,
-        'code_lines_count': True,
-        'cell_language': False,
-        'code_imports': True,
-        'code_chars_count': True,
-        'sentences_count': True,
-        'unique_words': False,
-        'content': False
-    }
-
     try:
         nb = Notebook(name, db_name)
         log = nb.parse_features(config)
@@ -46,13 +37,14 @@ def add_notebook(name):
 
 def get_notebook(notebook_id):
     nb = Notebook(notebook_id, db_name)
+    cells = nb.parse_features(config)
     print(f'{nb.metadata}\n{np.array(nb.cells)}')
     return nb
 
 
 def main():
-    get = True
-    notebook_id = 100
+    get = False
+    notebook_id = 2
 
     if get:
         nb = get_notebook(notebook_id)
@@ -72,7 +64,6 @@ def main():
                 pbar.update(1)
 
     print('Finishing...')
-    print(res)
     print('{} notebooks contain errors ({:.1f}%) '.format(
         len(res) - sum(res),
         (len(res) - sum(res)) / len(res) * 100
