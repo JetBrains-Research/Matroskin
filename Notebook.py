@@ -2,23 +2,36 @@ import nbformat
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 import ast
-import spacy
-from spacy_langdetect import LanguageDetector
-from spacy.language import Language
 import re
 
 import db_structures
 import get_data
 
 
-@Language.factory('language_detector')
-def language_detector(nlp, name):
-    return LanguageDetector()
+def markdown_cell(func):
+    def function_wrapper(*args, **kwargs):
+        cell = args[0] if len(args) == 1 else args[1]
+        if cell['type'] == 'markdown':
+            return func(*args, **kwargs)
+        else:
+            return None
+    return function_wrapper
+
+
+def code_cell(func):
+    def function_wrapper(*args, **kwargs):
+        cell = args[0] if len(args) == 1 else args[1]
+        if cell['type'] == 'code':
+            return func(*args, **kwargs)
+        else:
+            return None
+    return function_wrapper
 
 
 class Notebook(object):
     metadata = {}
     cells = []
+    nlp = None
 
     def __init__(self, name, db_name=''):
         self.mapping = {
@@ -35,23 +48,23 @@ class Notebook(object):
         self.engine = create_engine(f"sqlite:///{db_name}")
         self.engine.dispose()
 
-        self.nlp = spacy.load('en_core_web_sm')  # TODO load only if in config
-        self.nlp.max_length = 2000000
-        self.nlp.add_pipe('language_detector', last=True)
-
         if isinstance(name, int):
             try:
-                data = get_data.NotebookReaderDb(name, db_name)  # TODO change copipaste
-                self.metadata = data.get_notebook
-                self.cells = data.get_cells
+                data = get_data.NotebookReaderDb(name, db_name)
             except Exception as e:
                 with open("log.txt", "a") as f:
                     f.write(f'{name}\t{type(e).__name__}\n')
-
         elif isinstance(name, str):
             data = get_data.NotebookReaderAmazon(name)
-            self.metadata = data.get_notebook
-            self.cells = data.get_cells
+        else:
+            raise Exception("Incorrect input name format")
+
+        self.metadata = data.get_notebook
+        self.cells = data.get_cells
+
+    def add_nlp_model(self, nlp):
+        self.nlp = nlp
+        return 1
 
     def write_to_db(self):
         session = sessionmaker(bind=self.engine)()
@@ -79,10 +92,7 @@ class Notebook(object):
         success = []
         for cell in self.cells:
             cell['id'] = self.write_cell_to_db(conn)
-            if cell['type'] == 'code':
-                result = self.write_code_cell_to_db(cell, conn)
-            else:
-                result = self.write_md_cell_to_db(cell, conn)
+            result = self.write_processed_cell_to_db(cell, conn)
             success.append(result)
         return min(success, default=1)
 
@@ -92,39 +102,31 @@ class Notebook(object):
         conn.commit()
         return cell.cell_id
 
-    def write_code_cell_to_db(self, cell, conn):
-        cd_cell = db_structures.CodeCellDb(
+    def write_processed_cell_to_db(self, cell, conn):
+        if cell['type'] == 'markdown':
+            cell_db = db_structures.MdCellDb(
                 cell_id=cell['id'],
                 cell_num=cell['num'],
                 source=cell['source']
-        )
-        for key in cell.keys():
-            if key in dir(cd_cell) and key in self.mapping:
-                # print(f'{key} -> {cell[key]}')
-                setattr(cd_cell, key, cell[key])
-
-        conn.add(cd_cell)
-        conn.commit()
-        return 1
-
-    def write_md_cell_to_db(self, cell, conn):
-        md_cell = db_structures.MdCellDb(
-            cell_id=cell['id'],
-            cell_num=cell['num'],
-            source=cell['source']
-        )
+            )
+        else:
+            cell_db = db_structures.CodeCellDb(
+                cell_id=cell['id'],
+                cell_num=cell['num'],
+                source=cell['source']
+            )
 
         for key in cell.keys():
-            if key in dir(md_cell) and key in self.mapping:
+            if key in dir(cell_db) and key in self.mapping:
                 if key == 'content':  # TODO reconsider handling content
                     content = cell[key]
                     for k, value in content.items():
-                        setattr(md_cell, k, value)
+                        setattr(cell_db, k, value)
                     continue
                 # print(f'{key} -> {cell[key]}')
-                setattr(md_cell, key, cell[key])
+                setattr(cell_db, key, cell[key])
 
-        conn.add(md_cell)
+        conn.add(cell_db)
         conn.commit()
         return 1
 
@@ -134,19 +136,19 @@ class Notebook(object):
                 cell[function] = self.mapping[function](cell)
         return self.cells
 
+    @markdown_cell
     def get_cell_language(self, cell):
-        if cell['type'] == 'markdown':
-            doc = self.nlp(cell['source'])
-            return doc._.language['language']
-        else:
-            return None
+        doc = self.nlp(cell['source'])
+        return doc._.language['language']
 
+    @markdown_cell
     def get_sentences_count(self, cell):
         doc = self.nlp(cell['source'])
         sentence_tokens = [[token.text for token in sent]
                            for sent in doc.sents]
         return len(sentence_tokens)
 
+    @markdown_cell
     def get_unique_words(self, cell) -> str:
         doc = self.nlp(cell['source'])
 
@@ -157,6 +159,7 @@ class Notebook(object):
         return ' '.join(unique_words)
 
     @staticmethod
+    @markdown_cell
     def get_md_content(cell) -> dict:
         latex_regex_1 = r'\$(.*)\$'
         latex_regex_2 = r'\\begin(.*)\\end'
@@ -189,10 +192,10 @@ class Notebook(object):
             code_string = '\n'.join(code_string)
             return self.get_ast(code_string)
 
+    @code_cell
     def get_num_instructions(self, cell):
-        if cell['type'] == 'code':
-            cell_ast = self.get_ast(cell['source'])
-            return self.depth_ast(cell_ast)
+        cell_ast = self.get_ast(cell['source'])
+        return self.depth_ast(cell_ast)
 
     def depth_ast(self, cell_ast):
         return 1 + max(
@@ -200,34 +203,28 @@ class Notebook(object):
              for child in ast.iter_child_nodes(cell_ast)],
             default=0)
 
+    @code_cell
     def get_lines_of_code(self, cell):
-        if cell['type'] == 'code':
-            cell_ast = self.get_ast(cell['source'])
-            return max([node.lineno
-                        for node in ast.walk(cell_ast)
-                        if hasattr(node, 'lineno')],
-                       default=0)
-        else:
-            return None
+        cell_ast = self.get_ast(cell['source'])
+        return max([node.lineno
+                    for node in ast.walk(cell_ast)
+                    if hasattr(node, 'lineno')],
+                   default=0)
 
     @staticmethod
+    @code_cell
     def get_chars_of_code(cell):
-        if cell['type'] == 'code':
-            return len(cell['source'])
-        else:
-            return None
+        return len(cell['source'])
 
+    @code_cell
     def get_imports(self, cell):
         cell_imports = []
-        if cell['type'] == 'code':
-            cell_ast = self.get_ast(cell['source'])
-            ast_nodes = list(ast.walk(cell_ast))
-            for node in ast_nodes:
-                if type(node) == ast.Import:
-                    cell_imports += [alias.name for alias in node.names]
-                if type(node) == ast.ImportFrom:
-                    cell_imports += [f'{node.module}.{alias.name}' for alias in
-                                     node.names]
-            return " ".join(cell_imports)
-        else:
-            return None
+        cell_ast = self.get_ast(cell['source'])
+        ast_nodes = list(ast.walk(cell_ast))
+        for node in ast_nodes:
+            if type(node) == ast.Import:
+                cell_imports += [alias.name for alias in node.names]
+            if type(node) == ast.ImportFrom:
+                cell_imports += [f'{node.module}.{alias.name}' for alias in
+                                 node.names]
+        return " ".join(cell_imports)

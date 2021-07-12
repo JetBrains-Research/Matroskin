@@ -6,3 +6,4 @@
 *.ipynb
 *.idea
 __pycache__/
+flask/

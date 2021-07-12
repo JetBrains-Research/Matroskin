@@ -19,7 +19,7 @@ class NotebookReader(ABC):
 
     @property
     def get_cells(self) -> list:
-        self.propperty
+        return self._cells
 
 
 class NotebookReaderAmazon(NotebookReader):
@@ -131,4 +131,3 @@ class NotebookReaderDb(NotebookReader):
             (col, getattr(row, col))
             for col in row.__table__.columns.keys()
         )
-
