@@ -117,15 +117,13 @@ class Notebook(object):
             )
 
         for key in cell.keys():
-            if key in dir(cell_db) and key in self.mapping:
-                if key == 'content':  # TODO reconsider handling content
+            if key in (dir(cell_db) + ['content']) and key in self.mapping:
+                if key == 'content' and cell['type'] == 'markdown':  # TODO reconsider handling content
                     content = cell[key]
                     for k, value in content.items():
                         setattr(cell_db, k, value)
                     continue
-                # print(f'{key} -> {cell[key]}')
                 setattr(cell_db, key, cell[key])
-
         conn.add(cell_db)
         conn.commit()
         return 1
