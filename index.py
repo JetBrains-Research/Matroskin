@@ -1,9 +1,11 @@
 import json
 import time
-#from multiprocessing import Pool
+import ray
 from ray.util.multiprocessing import Pool
-from tqdm import tqdm
+# from multiprocessing import Pool
+# from tqdm import tqdm
 import numpy as np
+import progressbar
 import os.path
 import spacy
 from spacy_langdetect import LanguageDetector
@@ -26,21 +28,23 @@ def set_nlp_model():
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, 'test.db')
+db_name = os.path.join(BASE_DIR, 'databases/testik.db.db')
 config = {
     'code_instructions_count': True,
     'code_lines_count': True,
-    'cell_language': False,
+    'cell_language': True,
     'code_imports': True,
     'code_chars_count': True,
-    'sentences_count': False,
-    'unique_words': False,
+    'sentences_count': True,
+    'unique_words': True,
     'content': True
 }
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config[f] for f in nlp_functions]) else None
+ray.init(num_cpus=4)
 
 
+@ray.remote
 def add_notebook(name):
     try:
         nb = Notebook(name, db_name)
@@ -51,7 +55,6 @@ def add_notebook(name):
     except Exception as e:
         with open("log.txt", "a") as f:
             f.write(f'{name}\t{type(e).__name__}\n')
-            # f.write(f'{name}\t{str(e)}\n')
         return 0
 
 
@@ -71,18 +74,16 @@ def main():
         nb = get_notebook(notebook_id)
         return
 
-    with open('ntbs_list.json', 'r') as fp:
-        start, step = 500, 5
+    with open('databases/ntbs_list.json', 'r') as fp:
+        start, step = 0, 1000
         ntb_list = json.load(fp)[start:start+step]
 
     create_db(db_name)
     res = []
-    with tqdm(total=len(ntb_list)) as pbar:
-        with Pool(processes=6) as pool:
-            for result in pool.imap_unordered(add_notebook, ntb_list,
-                                              chunksize=5):
-                res.append(result)
-                pbar.update(1)
+
+    result_ids = [add_notebook.remote(name) for name in ntb_list]
+    for result_id in progressbar.progressbar(result_ids):
+        res.append(ray.get(result_id))
 
     print('Finishing...')
     print('{} notebooks contain errors ({:.1f}%) '.format(
