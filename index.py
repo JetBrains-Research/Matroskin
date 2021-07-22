@@ -3,9 +3,8 @@ import time
 import ray
 from ray.util.multiprocessing import Pool
 # from multiprocessing import Pool
-# from tqdm import tqdm
+from tqdm import tqdm
 import numpy as np
-import progressbar
 import os.path
 import spacy
 from spacy_langdetect import LanguageDetector
@@ -28,20 +27,21 @@ def set_nlp_model():
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, 'databases/testik.db.db')
+db_name = os.path.join(BASE_DIR, 'databases/test.db')
 config = {
     'code_instructions_count': True,
     'code_lines_count': True,
-    'cell_language': True,
+    'cell_language': False,
     'code_imports': True,
     'code_chars_count': True,
-    'sentences_count': True,
-    'unique_words': True,
-    'content': True
+    'sentences_count': False,
+    'unique_words': False,
+    'content': True,
+    'metrics': True
 }
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config[f] for f in nlp_functions]) else None
-ray.init(num_cpus=4)
+ray.init(num_cpus=7)
 
 
 @ray.remote
@@ -68,21 +68,24 @@ def get_notebook(notebook_id):
 
 def main():
     get = False
-    notebook_id = 12
+    notebook_id = 16
 
     if get:
         nb = get_notebook(notebook_id)
+        metrics = nb.metrics
+        print(metrics)
         return
 
     with open('databases/ntbs_list.json', 'r') as fp:
-        start, step = 0, 1000
+        start, step = 0, 200
         ntb_list = json.load(fp)[start:start+step]
 
     create_db(db_name)
     res = []
-
     result_ids = [add_notebook.remote(name) for name in ntb_list]
-    for result_id in progressbar.progressbar(result_ids):
+
+    pbar = tqdm(result_ids)
+    for result_id in pbar:
         res.append(ray.get(result_id))
 
     print('Finishing...')

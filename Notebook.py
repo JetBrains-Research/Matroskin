@@ -1,11 +1,15 @@
-import nbformat
-from sqlalchemy import create_engine
-from sqlalchemy.orm.session import sessionmaker
 import ast
 import re
+import nbformat
+import numpy as np
+from radon.raw import analyze
+from radon.visitors import ComplexityVisitor
+from sqlalchemy import create_engine
+from sqlalchemy.orm.session import sessionmaker
 
 import db_structures
 import get_data
+import metrics_utils
 
 
 def markdown_cell(func):
@@ -15,6 +19,7 @@ def markdown_cell(func):
             return func(*args, **kwargs)
         else:
             return None
+
     return function_wrapper
 
 
@@ -25,6 +30,7 @@ def code_cell(func):
             return func(*args, **kwargs)
         else:
             return None
+
     return function_wrapper
 
 
@@ -42,7 +48,8 @@ class Notebook(object):
             'code_chars_count': self.get_chars_of_code,
             'sentences_count': self.get_sentences_count,
             'unique_words': self.get_unique_words,
-            'content': self.get_md_content
+            'content': self.get_md_content,
+            'metrics': self.get_general_metrics
         }
 
         self.engine = create_engine(f"sqlite:///{db_name}")
@@ -54,6 +61,9 @@ class Notebook(object):
             except Exception as e:
                 with open("log.txt", "a") as f:
                     f.write(f'{name}\t{type(e).__name__}\n')
+            finally:
+                return
+
         elif isinstance(name, str):
             data = get_data.NotebookReaderAmazon(name)
         else:
@@ -117,13 +127,15 @@ class Notebook(object):
             )
 
         for key in cell.keys():
-            if key in (dir(cell_db) + ['content']) and key in self.mapping:
-                if key == 'content' and cell['type'] == 'markdown':  # TODO reconsider handling content
+            if key in (dir(cell_db) + ['content', 'metrics']) and key in self.mapping:
+                if (key == 'content' and cell['type'] == 'markdown') \
+                        or (key == 'metrics' and cell['type'] == 'code'):  # TODO reconsider handling content
                     content = cell[key]
                     for k, value in content.items():
                         setattr(cell_db, k, value)
                     continue
                 setattr(cell_db, key, cell[key])
+
         conn.add(cell_db)
         conn.commit()
         return 1
@@ -132,6 +144,7 @@ class Notebook(object):
         for cell in self.cells:
             for function in {k: v for k, v in config.items() if v}:
                 cell[function] = self.mapping[function](cell)
+
         return self.cells
 
     @markdown_cell
@@ -180,19 +193,19 @@ class Notebook(object):
             result['code'] = True
         return result
 
-    def get_ast(self, cell):
-        try:
-            code_ast = ast.parse(cell)
-            return code_ast
-        except SyntaxError as e:  # TODO: reconsider a way for handling magic functions
-            code_string = cell.splitlines()
-            del code_string[e.lineno - 1]
-            code_string = '\n'.join(code_string)
-            return self.get_ast(code_string)
+    # def get_ast(self, cell):
+    #     try:
+    #         code_ast = ast.parse(cell)
+    #         return code_ast
+    #     except SyntaxError as e:  # TODO: reconsider a way for handling magic functions
+    #         code_string = cell.splitlines()
+    #         del code_string[e.lineno - 1]
+    #         code_string = '\n'.join(code_string)
+    #         return self.get_ast(code_string)
 
     @code_cell
     def get_num_instructions(self, cell):
-        cell_ast = self.get_ast(cell['source'])
+        cell_ast = metrics_utils.get_ast(cell['source'])
         return self.depth_ast(cell_ast)
 
     def depth_ast(self, cell_ast):
@@ -203,7 +216,7 @@ class Notebook(object):
 
     @code_cell
     def get_lines_of_code(self, cell):
-        cell_ast = self.get_ast(cell['source'])
+        cell_ast = metrics_utils.get_ast(cell['source'])
         return max([node.lineno
                     for node in ast.walk(cell_ast)
                     if hasattr(node, 'lineno')],
@@ -217,7 +230,7 @@ class Notebook(object):
     @code_cell
     def get_imports(self, cell):
         cell_imports = []
-        cell_ast = self.get_ast(cell['source'])
+        cell_ast = metrics_utils.get_ast(cell['source'])
         ast_nodes = list(ast.walk(cell_ast))
         for node in ast_nodes:
             if type(node) == ast.Import:
@@ -226,3 +239,60 @@ class Notebook(object):
                 cell_imports += [f'{node.module}.{alias.name}' for alias in
                                  node.names]
         return " ".join(cell_imports)
+
+    @code_cell
+    def get_general_metrics(self, cell):
+        source = cell['source']
+        metrics = {}
+
+        try:
+            metrics['ccn'] = metrics_utils.get_cyclomatic_complexity(source)
+
+        except SyntaxError as e:
+            source = source.splitlines()
+            del source[e.lineno - 1 - 3]
+            source = '\n'.join(source)
+            cell['source'] = source
+            return self.get_general_metrics(cell)
+
+        res = analyze(source)
+        metrics['sloc'] = res.sloc
+        metrics['comments_count'] = res.comments + res.multi
+
+        ast_cell = metrics_utils.get_ast(source)  # ast.parse(source)
+        metrics['operation_complexity'] = metrics_utils.get_operation_complexity(ast_cell)
+        metrics['classes_size'] = metrics_utils.get_classes_size(ast_cell)
+        metrics['npavg'], metrics['functions_count'] = metrics_utils.get_npavg(ast_cell)
+
+        override = metrics_utils.get_override_metrics(ast_cell)
+        override = np.array(override).T
+
+        if len(override):
+            metrics['override_methods_count'] = int(sum(override[0]))  # TODO or additionally / len(list) ?
+            metrics['new_methods_count'] = int(sum(override[1]))  # TODO change using numpy arrays because of int64
+        else:
+            metrics['override_methods_count'], metrics['new_methods_count'] = 0, 0
+
+        return metrics
+
+    @property
+    def metrics(self):
+        if not self.cells:
+            return None
+
+        metrics_list = []
+        for cell in self.cells:
+            metrics_list.append(
+                self.get_general_metrics(cell)
+            )
+
+        res = metrics_list[0]
+        for d in metrics_list[1:]:
+            if d is None:
+                continue
+
+            for key in d.keys():
+                res[key] += d[key]
+        return res
+        # return dict(functools.reduce(operator.add,
+        #             map(collections.Counter, metrics_list)))
