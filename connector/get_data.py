@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 from abc import ABC
 
-import db_structures
+from . import db_structures
 
 
 class NotebookReader(ABC):

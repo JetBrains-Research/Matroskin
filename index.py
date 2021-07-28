@@ -10,8 +10,8 @@ import spacy
 from spacy_langdetect import LanguageDetector
 from spacy.language import Language
 
-from Notebook import Notebook
-from db_structures import create_db
+from notebook import notebook
+from connector import db_structures
 
 
 @Language.factory('language_detector')
@@ -28,40 +28,44 @@ def set_nlp_model():
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_name = os.path.join(BASE_DIR, 'databases/test.db')
+
 config = {
-    'code_instructions_count': True,
-    'code_lines_count': True,
-    'cell_language': False,
-    'code_imports': True,
-    'code_chars_count': True,
-    'sentences_count': False,
-    'unique_words': False,
-    'content': True,
-    'metrics': True
+    'markdown': {
+        'cell_language': False,
+        'sentences_count': False,
+        'unique_words': False,
+        'content': True,
+    },
+    'code': {
+        'code_instructions_count': True,
+        'code_imports': True,
+        'code_chars_count': True,
+        'metrics': True
+    }
 }
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
-nlp = set_nlp_model() if sum([config[f] for f in nlp_functions]) else None
+nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
 ray.init(num_cpus=7)
 
 
 @ray.remote
 def add_notebook(name):
-    try:
-        nb = Notebook(name, db_name)
+    if 1: #try:
+        nb = notebook.Notebook(name, db_name)
         success = nb.add_nlp_model(nlp)
-        log = nb.parse_features(config)
+        log = nb.run_tasks(config)
         rows = nb.write_to_db()
         return rows
-    except Exception as e:
-        with open("log.txt", "a") as f:
-            f.write(f'{name}\t{type(e).__name__}\n')
-        return 0
+    # except Exception as e:
+    #     with open("logs/log.txt", "a") as f:
+    #         f.write(f'{name}\t{type(e).__name__}\n')
+    #     return 0
 
 
 def get_notebook(notebook_id):
-    nb = Notebook(notebook_id, db_name)
+    nb = notebook.Notebook(notebook_id, db_name)
     success = nb.add_nlp_model(nlp)
-    cells = nb.parse_features(config)
+    cells = nb.run_tasks(config)
     print(f'{nb.metadata}\n{np.array(nb.cells)}')
     return nb
 
@@ -77,10 +81,10 @@ def main():
         return
 
     with open('databases/ntbs_list.json', 'r') as fp:
-        start, step = 0, 200
+        start, step = 130_000, 50
         ntb_list = json.load(fp)[start:start+step]
 
-    create_db(db_name)
+    db_structures.create_db(db_name)
     res = []
     result_ids = [add_notebook.remote(name) for name in ntb_list]
 
