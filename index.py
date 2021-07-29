@@ -4,7 +4,6 @@ import ray
 from ray.util.multiprocessing import Pool
 # from multiprocessing import Pool
 from tqdm import tqdm
-import numpy as np
 import os.path
 import spacy
 from spacy_langdetect import LanguageDetector
@@ -50,23 +49,23 @@ ray.init(num_cpus=7)
 
 @ray.remote
 def add_notebook(name):
-    if 1: #try:
+    try:
         nb = notebook.Notebook(name, db_name)
         success = nb.add_nlp_model(nlp)
         log = nb.run_tasks(config)
         rows = nb.write_to_db()
         return rows
-    # except Exception as e:
-    #     with open("logs/log.txt", "a") as f:
-    #         f.write(f'{name}\t{type(e).__name__}\n')
-    #     return 0
+    except Exception as e:
+        with open("logs/log.txt", "a") as f:
+            f.write(f'{name}\t{type(e).__name__}\n')
+        return 0
 
 
 def get_notebook(notebook_id):
     nb = notebook.Notebook(notebook_id, db_name)
     success = nb.add_nlp_model(nlp)
     cells = nb.run_tasks(config)
-    print(f'{nb.metadata}\n{np.array(nb.cells)}')
+    print(f'{nb.metadata}\n{nb.cells}')
     return nb
 
 

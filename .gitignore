@@ -2,6 +2,7 @@ __pycache__/
 flask/
 databases/
 notebooks/
+dist/
 old/
 *.idea
 *.ipynb_checkpoints
