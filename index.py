@@ -9,8 +9,8 @@ import spacy
 from spacy_langdetect import LanguageDetector
 from spacy.language import Language
 
-from notebook import notebook
-from connector import db_structures
+from notebook import Notebook
+from connector import create_db
 
 
 @Language.factory('language_detector')
@@ -44,13 +44,13 @@ config = {
 }
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=7)
+ray.init(num_cpus=6)
 
 
 @ray.remote
 def add_notebook(name):
     try:
-        nb = notebook.Notebook(name, db_name)
+        nb = Notebook(name, db_name)
         success = nb.add_nlp_model(nlp)
         log = nb.run_tasks(config)
         rows = nb.write_to_db()
@@ -62,7 +62,7 @@ def add_notebook(name):
 
 
 def get_notebook(notebook_id):
-    nb = notebook.Notebook(notebook_id, db_name)
+    nb = Notebook(notebook_id, db_name)
     success = nb.add_nlp_model(nlp)
     cells = nb.run_tasks(config)
     print(f'{nb.metadata}\n{nb.cells}')
@@ -75,15 +75,15 @@ def main():
 
     if get:
         nb = get_notebook(notebook_id)
-        metrics = nb.metrics
-        print(metrics)
+        # metrics = nb.metrics
+        # print(metrics)
         return
 
     with open('databases/ntbs_list.json', 'r') as fp:
-        start, step = 130_000, 50
+        start, step = 1, 200
         ntb_list = json.load(fp)[start:start+step]
 
-    db_structures.create_db(db_name)
+    create_db(db_name)
     res = []
     result_ids = [add_notebook.remote(name) for name in ntb_list]
 

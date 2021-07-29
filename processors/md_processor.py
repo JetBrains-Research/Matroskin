@@ -1,8 +1,8 @@
 import re
-from . import cell_processor
+from processors import CellProcessor
 
 
-class MdProcessor(cell_processor.CellProcessor):
+class MdProcessor(CellProcessor):
 
     def __init__(self, cell_data, nlp=None):
         super().__init__(cell_data)

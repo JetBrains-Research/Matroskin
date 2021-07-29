@@ -1,15 +1,16 @@
 import gast as ast
 from radon.raw import analyze
 
-from . import cell_processor, metrics_utils
-from . import node_visitor
+from processors import CellProcessor
+from processors import metrics_utils
+from processors.node_visitor import ComplexityVisitor, OOPVisitor
 
 
-class CodeProcessor(cell_processor.CellProcessor):
+class CodeProcessor(CellProcessor):
     task_mapping = {}
     visitors = [
-        node_visitor.ComplexityVisitor,
-        node_visitor.OOPVisitor
+        ComplexityVisitor,
+        OOPVisitor
     ]
 
     def __init__(self, cell_data):

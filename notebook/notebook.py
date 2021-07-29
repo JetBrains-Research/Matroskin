@@ -1,11 +1,9 @@
-import sys
-sys.path.append("..")  # TODO very very bad
 from sqlalchemy.orm.session import sessionmaker
 
-from processors.md_processor import MdProcessor
-from processors.code_processor import CodeProcessor
-from connector.connector import Connector
-from . import write_to_db
+from processors import MdProcessor
+from processors import CodeProcessor
+from connector import Connector
+from notebook.write_to_db import write_notebook_to_db, write_cells_to_db
 
 
 class Aggregator:
@@ -37,8 +35,8 @@ class Notebook(object):
         session = sessionmaker(bind=self.engine)()
 
         with session as conn:
-            self.metadata['id'] = write_to_db.write_notebook_to_db(conn, self.metadata)
-            success = write_to_db.write_cells_to_db(conn, self.cells, self.metadata['id'])
+            self.metadata['id'] = write_notebook_to_db(conn, self.metadata)
+            success = write_cells_to_db(conn, self.cells, self.metadata['id'])
         return success
 
     def run_tasks(self, config):
