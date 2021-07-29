@@ -1,27 +1,11 @@
 import json
-import time
 import ray
-from tqdm import tqdm
 import os.path
-import spacy
-from spacy_langdetect import LanguageDetector
-from spacy.language import Language
+from tqdm import tqdm
 
 from notebook import Notebook
 from connector import create_db
-
-
-@Language.factory('language_detector')
-def language_detector(nlp, name):
-    return LanguageDetector()
-
-
-def set_nlp_model():
-    nlp = spacy.load('en_core_web_sm')
-    nlp.max_length = 2000000
-    nlp.add_pipe('language_detector', last=True)
-    return nlp
-
+from examples_utils import log_exceptions, set_nlp_model, timing
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_name = os.path.join(BASE_DIR, '../databases/test.db')
@@ -40,45 +24,27 @@ config = {
         'metrics': True
     }
 }
+
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
 ray.init(num_cpus=6)
 
 
 @ray.remote
+@log_exceptions
 def add_notebook(name):
-    try:
-        nb = Notebook(name, db_name)
-        success = nb.add_nlp_model(nlp)
-        log = nb.run_tasks(config)
-        rows = nb.write_to_db()
-        return rows
-    except Exception as e:
-        with open("../logs/log.txt", "a") as f:
-            f.write(f'{name}\t{type(e).__name__}\n')
-        return 0
-
-
-def get_notebook(notebook_id):
-    nb = Notebook(notebook_id, db_name)
+    nb = Notebook(name, db_name)
     success = nb.add_nlp_model(nlp)
-    cells = nb.run_tasks(config)
-    print(f'{nb.metadata}\n{nb.cells}')
-    return nb
+    log = nb.run_tasks(config)
+    rows = nb.write_to_db()
+    return rows
 
 
+@timing
 def main():
-    get = False
-    notebook_id = 16
-
-    if get:
-        nb = get_notebook(notebook_id)
-        # metrics = nb.metrics
-        # print(metrics)
-        return
 
     with open('../databases/ntbs_list.json', 'r') as fp:
-        start, step = 1_100_000, 50
+        start, step = 1_000_000, 20
         ntb_list = json.load(fp)[start:start+step]
 
     create_db(db_name)
@@ -97,6 +63,4 @@ def main():
 
 
 if __name__ == '__main__':
-    start_time = time.time()
     main()
-    print("--- {:.1f} seconds ---".format(time.time() - start_time))

@@ -15,7 +15,7 @@ class Connector:
             try:
                 self.data = get_data.NotebookReaderDb(notebook_id, db_name)
             except OperationalError as e:
-                with open("logs/log.txt", "a") as f:
+                with open("../logs/log.txt", "a") as f:
                     f.write(f'{notebook_id}\t{type(e).__name__}\n')
             finally:
                 return
