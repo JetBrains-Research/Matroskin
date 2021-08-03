@@ -33,6 +33,7 @@ class CodeProcessor(CellProcessor):
         }
 
         self.cell['ast'] = get_ast(self.cell['source'])
+        self.refactored_cell_ast = get_ast(self.__get_refactored_cell())
 
         self.complexity_visitor = ComplexityVisitor()
         self.oop_visitor = OOPVisitor()
@@ -48,6 +49,12 @@ class CodeProcessor(CellProcessor):
                       for child in ast.iter_child_nodes(cell_ast)]
         depth = default_depth + max(all_depths, default=0)
         return depth
+
+    def __get_refactored_cell(self):
+        refactored_cell = 'def a():\n\tpass\n' \
+                          + '\n'.join(['\t' + line
+                                       for line in self.cell['source'].split('\n') if ('import' not in line)])
+        return refactored_cell
 
     @staticmethod
     def get_chars_of_code(cell):
@@ -75,9 +82,10 @@ class CodeProcessor(CellProcessor):
         }
         return oop_metrics
 
-    def get_complexity_metrics(self, cell_source):
+    def get_complexity_metrics(self):
         complexity_metrics = {
-            'ccn': self.complexity_visitor.get_cyclomatic_complexity(cell_source),
+            'ccn': self.complexity_visitor.get_cyclomatic_complexity(self.refactored_cell_ast),
+            'halstead': self.complexity_visitor.get_halstead_complexity(self.refactored_cell_ast),
             'operation_complexity': self.complexity_visitor.operation_complexity,
             'npavg': self.complexity_visitor.npavg,
             'functions_count': len(self.complexity_visitor.functions)
@@ -98,7 +106,7 @@ class CodeProcessor(CellProcessor):
         cell_source = cell['source']
 
         radon_metrics = self.get_radon_metrics(cell_source)
-        complexity_metrics = self.get_complexity_metrics(cell_source)
+        complexity_metrics = self.get_complexity_metrics()
         oop_metrics = self.get_oop_metrics()
 
         metrics = {**radon_metrics, **complexity_metrics, **oop_metrics}

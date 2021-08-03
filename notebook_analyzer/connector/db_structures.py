@@ -29,6 +29,7 @@ class CodeCellDb(base):
     code_lines_count = Column(Integer, default=0)
     code_chars_count = Column(Integer, default=0)
     ccn = Column(Integer, default=0)
+    halstead = Column(Integer, default=0)
     sloc = Column(Integer, default=0)
     comments_count = Column(Integer, default=0)
     operation_complexity = Column(Float, default=0)

@@ -1,5 +1,8 @@
 import gast as ast
 from typing import List, Dict
+from radon.metrics import h_visit_ast
+from radon.complexity import cc_visit_ast, add_inner_blocks
+from radon import visitors
 from radon.visitors import ComplexityVisitor as CyclomaticComplexityVisitor
 
 operation_complexity_weight = {
@@ -49,29 +52,18 @@ class ComplexityVisitor(ast.NodeVisitor):
     def get_imports(self):
         return self.imports
 
-    def get_cyclomatic_complexity(self, cell_source):
-        refactored_cell = 'def _():\n\tpass\n' \
-                          + '\n'.join(['\t' + line
-                                       for line in cell_source.split('\n')]) \
-            if cell_source else ''
-        if not refactored_cell:
-            return 0
+    @staticmethod
+    def get_cyclomatic_complexity(cell_ast):
+        blocks = cc_visit_ast(cell_ast)
+        complexity = sum([block.complexity for block \
+                          in add_inner_blocks(blocks)])
+        return complexity
 
-        try:
-            cyclomatic_visitor = CyclomaticComplexityVisitor.from_code(refactored_cell)
-        except SyntaxError as e:
-            source = cell_source.splitlines()
-            del source[e.lineno - 1 - 3]
-            source = '\n'.join(source)
-            return self.get_cyclomatic_complexity(source)
+    @staticmethod
+    def get_halstead_complexity(cell_ast):
+        halstead_metrics = h_visit_ast(cell_ast)
 
-        func_cell = cyclomatic_visitor.functions[0]
-        cell_complexity = func_cell.complexity
-
-        for func in func_cell.closures:
-            cell_complexity += func.complexity
-
-        return cell_complexity
+        return halstead_metrics.total.vocabulary
 
     @property
     def npavg(self):

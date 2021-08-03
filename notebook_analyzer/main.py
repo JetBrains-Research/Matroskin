@@ -29,7 +29,6 @@ nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
 ray.init(num_cpus=6)
 
-
 @ray.remote
 @log_exceptions
 def add_notebook(name):
@@ -44,7 +43,7 @@ def add_notebook(name):
 def main():
 
     with open('databases/ntbs_list.json', 'r') as fp:
-        start, step = 1_800_000, 20
+        start, step = 1_900_000, 100
         ntb_list = json.load(fp)[start:start+step]
 
     create_db(db_name)
@@ -54,6 +53,7 @@ def main():
     pbar = tqdm(result_ids)
     for result_id in pbar:
         res.append(ray.get(result_id))
+        pbar.set_postfix(errors=f'{(len(res) - sum(res))} ({(len(res) - sum(res)) / len(result_ids) * 100}%)')
 
     print('Finishing...')
     print('{} notebooks contain errors ({:.1f}%) '.format(
