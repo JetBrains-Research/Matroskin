@@ -1,5 +1,13 @@
 import gast as ast
 from typing import List, Dict
+from radon.visitors import ComplexityVisitor as CyclomaticComplexityVisitor
+
+operation_complexity_weight = {
+    'branching': 0.5,
+    'binary_op': 2,
+    'assign': 0.5,
+    'call': 5
+}
 
 
 class ComplexityVisitor(ast.NodeVisitor):
@@ -13,19 +21,19 @@ class ComplexityVisitor(ast.NodeVisitor):
 
         if isinstance(node, (ast.AsyncFor, ast.While, ast.If,
                              ast.With, ast.AsyncWith)):
-            self.operation_complexity += 0.5
+            self.operation_complexity += operation_complexity_weight['branching']
 
         return self.operation_complexity
 
     def visit_BinOp(self, node):
-        self.operation_complexity += 2
+        self.operation_complexity += operation_complexity_weight['binary_op']
 
     def visit_Assign(self, node):
-        self.operation_complexity += 0.5
+        self.operation_complexity += operation_complexity_weight['assign']
 
     def visit_Call(self, node):
         if isinstance(node.func, (ast.Attribute, ast.Call)):
-            self.operation_complexity += 5
+            self.operation_complexity += operation_complexity_weight['call']
         if isinstance(node, ast.Call):
             self.functions.append({'function': node, 'args': node.args})
         else:
@@ -40,6 +48,30 @@ class ComplexityVisitor(ast.NodeVisitor):
 
     def get_imports(self):
         return self.imports
+
+    def get_cyclomatic_complexity(self, cell_source):
+        refactored_cell = 'def _():\n\tpass\n' \
+                          + '\n'.join(['\t' + line
+                                       for line in cell_source.split('\n')]) \
+            if cell_source else ''
+        if not refactored_cell:
+            return 0
+
+        try:
+            cyclomatic_visitor = CyclomaticComplexityVisitor.from_code(refactored_cell)
+        except SyntaxError as e:
+            source = cell_source.splitlines()
+            del source[e.lineno - 1 - 3]
+            source = '\n'.join(source)
+            return self.get_cyclomatic_complexity(source)
+
+        func_cell = cyclomatic_visitor.functions[0]
+        cell_complexity = func_cell.complexity
+
+        for func in func_cell.closures:
+            cell_complexity += func.complexity
+
+        return cell_complexity
 
     @property
     def npavg(self):

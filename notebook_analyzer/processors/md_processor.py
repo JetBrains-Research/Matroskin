@@ -1,11 +1,11 @@
 import re
-from processors import CellProcessor
+from .cell_processor import CellProcessor
 
 
 class MdProcessor(CellProcessor):
 
     def __init__(self, cell_data, nlp=None):
-        super().__init__(cell_data)
+        self.cell = cell_data
 
         self.task_mapping = {
             'cell_language': self.get_cell_language,
@@ -15,19 +15,10 @@ class MdProcessor(CellProcessor):
         }
 
         self.nlp = nlp
-
-    def process_cell(self, tasks) -> dict:
-        for function in {
-            k: v
-            for k, v in tasks.items()
-            if (v and k in self.task_mapping.keys())
-        }:
-            self.cell[function] = self.task_mapping[function](self.cell)
-        return self.cell
+        self.nlp_doc = self.nlp(self.cell['source']) if nlp else None
 
     def get_cell_language(self, cell):
-        doc = self.nlp(cell['source'])
-        return doc._.language['language']
+        return self.nlp_doc._.language['language']
 
     def get_sentences_count(self, cell):
         doc = self.nlp(cell['source'])
@@ -65,4 +56,5 @@ class MdProcessor(CellProcessor):
             result['html'] = True
         if re.findall(code_regex, cell_text, re.MULTILINE):
             result['code'] = True
+
         return result

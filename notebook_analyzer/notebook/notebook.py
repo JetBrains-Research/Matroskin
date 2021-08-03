@@ -3,7 +3,7 @@ from sqlalchemy.orm.session import sessionmaker
 from processors import MdProcessor
 from processors import CodeProcessor
 from connector import Connector
-from notebook.write_to_db import write_notebook_to_db, write_cells_to_db
+from .write_to_db import write_notebook_to_db
 
 
 class Aggregator:
@@ -18,26 +18,28 @@ class Notebook(object):
     cells = []
     metadata = {}
     nlp = None
+    nlp_doc = None
 
-    def __init__(self, name, db_name=''):
+    def __init__(self, name, db_name=""):
 
         connector = Connector(name, db_name)
 
         self.engine = connector.engine
-        self.metadata = connector.data.get_notebook
-        self.cells = connector.data.get_cells
+        self.metadata = connector.data.metadata
+        self.cells = connector.data.cells
 
     def add_nlp_model(self, nlp):
         self.nlp = nlp
+
         return 1
 
     def write_to_db(self):
         session = sessionmaker(bind=self.engine)()
 
         with session as conn:
-            self.metadata['id'] = write_notebook_to_db(conn, self.metadata)
-            success = write_cells_to_db(conn, self.cells, self.metadata['id'])
-        return success
+            self.metadata['id'] = write_notebook_to_db(conn, self.metadata, self.cells)
+
+        return 1
 
     def run_tasks(self, config):
         for i, cell in enumerate(self.cells):

@@ -9,7 +9,7 @@ def log_exceptions(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            with open("../logs/log.txt", "a") as f:
+            with open("logs/log.txt", "a") as f:
                 f.write(f'{args[0]}\t{type(e).__name__}\n')
             return 0
 
