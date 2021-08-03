@@ -44,7 +44,7 @@ def add_notebook(name):
 def main():
 
     with open('databases/ntbs_list.json', 'r') as fp:
-        start, step = 1_800_000, 50
+        start, step = 1_800_000, 20
         ntb_list = json.load(fp)[start:start+step]
 
     create_db(db_name)
