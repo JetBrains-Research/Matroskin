@@ -1,14 +1,14 @@
 from sqlalchemy.orm.session import sessionmaker
 
-from processors import MdProcessor
-from processors import CodeProcessor
-from connector import Connector
+from ..processors import MdProcessor
+from ..processors import CodeProcessor
+from ..connector import Connector
 from .write_to_db import write_notebook_to_db
 
 
 class Aggregator:
     def __init__(self):
-        self.a = 1
+        self.a = None
 
 
 class Notebook(object):
@@ -18,7 +18,6 @@ class Notebook(object):
     cells = []
     metadata = {}
     nlp = None
-    nlp_doc = None
 
     def __init__(self, name, db_name=""):
 

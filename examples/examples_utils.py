@@ -2,6 +2,10 @@ import time
 import spacy
 from spacy_langdetect import LanguageDetector
 from spacy.language import Language
+import logging
+
+logger = logging.getLogger('notebook_logger')
+logger.addHandler(logging.FileHandler(filename='../logs/example.log', mode="a+"))
 
 
 def log_exceptions(func):
@@ -9,8 +13,9 @@ def log_exceptions(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            with open("logs/log.txt", "a") as f:
-                f.write(f'{args[0]}\t{type(e).__name__}\n')
+            # logger.info(f'{args[0]}\t{type(e).__name__}\n')  # TODO logger doesn't write in file :(
+            with open("../logs/log.txt", "a") as f:
+                f.write(f'{args[0]}\t{type(e).__name__}\t{e}\n')
             return 0
 
     return function_wrapper

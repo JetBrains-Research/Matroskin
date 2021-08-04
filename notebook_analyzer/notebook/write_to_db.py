@@ -1,6 +1,6 @@
 from typing import Dict
 
-from connector import db_structures
+from ..connector import db_structures
 
 
 def write_notebook_to_db(conn, nb_metadata, cells):

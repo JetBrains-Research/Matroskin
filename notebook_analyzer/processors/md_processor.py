@@ -1,4 +1,5 @@
 import re
+
 from .cell_processor import CellProcessor
 
 
@@ -15,22 +16,19 @@ class MdProcessor(CellProcessor):
         }
 
         self.nlp = nlp
-        self.nlp_doc = self.nlp(self.cell['source']) if nlp else None
+        self.nlp_doc = self.nlp(self.cell['source']) if self.nlp else None
 
-    def get_cell_language(self, cell):
+    def get_cell_language(self, cell) -> str:
         return self.nlp_doc._.language['language']
 
-    def get_sentences_count(self, cell):
-        doc = self.nlp(cell['source'])
+    def get_sentences_count(self, cell) -> int:
         sentence_tokens = [[token.text for token in sent]
-                           for sent in doc.sents]
+                           for sent in self.nlp_doc.sents]
         return len(sentence_tokens)
 
     def get_unique_words(self, cell) -> str:
-        doc = self.nlp(cell['source'])
-
         words = [token.text.lower()
-                 for token in doc
+                 for token in self.nlp_doc
                  if not token.is_stop and not token.is_punct]
         unique_words = set(words)
         return ' '.join(unique_words)

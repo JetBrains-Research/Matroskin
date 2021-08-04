@@ -3,19 +3,18 @@ import ray
 import os.path
 from tqdm import tqdm
 
-from notebook import Notebook
-from connector import create_db
+from notebook_analyzer import Notebook, create_db
 from examples_utils import log_exceptions, set_nlp_model, timing
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/scripts.db')
+db_name = os.path.join(BASE_DIR, '../databases/testik_new.db')
 
 config = {
     'markdown': {
         'cell_language': False,
         'sentences_count': False,
         'unique_words': False,
-        'content': True,
+        'content': False,
     },
     'code': {
         'code_instructions_count': True,
@@ -27,7 +26,7 @@ config = {
 
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=5)
+ray.init(num_cpus=6)
 
 
 @ray.remote
@@ -42,18 +41,24 @@ def add_notebook(name):
 
 @timing
 def main():
+    scripts_input = True
+    start, step = 0, 100
 
-    with open('../databases/20kk_scripts.txt', 'r') as fp:
-        start, step = 0, 10_000
-        script_list = fp.read().split('\n')[start:step]
+    if not scripts_input:
+        with open('../databases/ntbs_list.json', 'r') as file:
+            ntb_list = json.load(file)[start:start+step]
+    else:
+        with open('../databases/20kk_scripts.txt', 'r') as file:
+            ntb_list = file.read().split('\n')[start:start+step]
 
     create_db(db_name)
     res = []
-    result_ids = [add_notebook.remote(name) for name in script_list]
+    result_ids = [add_notebook.remote(name) for name in ntb_list]
 
     pbar = tqdm(result_ids)
     for result_id in pbar:
         res.append(ray.get(result_id))
+        pbar.set_postfix(errors=f'{(len(res) - sum(res))} ({(len(res) - sum(res)) / len(result_ids) * 100}%)')
 
     print('Finishing...')
     print('{} notebooks contain errors ({:.1f}%) '.format(

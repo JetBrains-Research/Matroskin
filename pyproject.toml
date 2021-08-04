@@ -1,12 +1,15 @@
 [tool.poetry]
-name = "jpt-nb-corpus"
+name = "notebook_analyzer"
 version = "0.1.0"
 description = ""
 authors = ["konstantgr <60608301+konstantgr@users.noreply.github.com>"]
-license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+SQLAlchemy = "^1.4.22"
+gast = "^0.5.2"
+radon = "^5.0.1"
+nbformat = "^5.1.3"
 
 [tool.poetry.dev-dependencies]
 

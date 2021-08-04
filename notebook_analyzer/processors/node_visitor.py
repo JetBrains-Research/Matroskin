@@ -2,8 +2,7 @@ import gast as ast
 from typing import List, Dict
 from radon.metrics import h_visit_ast
 from radon.complexity import cc_visit_ast, add_inner_blocks
-from radon import visitors
-from radon.visitors import ComplexityVisitor as CyclomaticComplexityVisitor
+
 
 operation_complexity_weight = {
     'branching': 0.5,
@@ -77,14 +76,10 @@ class ComplexityVisitor(ast.NodeVisitor):
         return args / len(self.functions)
 
 
-class ClassVisitor(ast.NodeVisitor):
+class MethodVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.methods = set()
         self.attributes = set()
-
-    def visit_Assign(self, node):
-        if isinstance(node.targets[0], ast.Name):
-            self.attributes.add(node.targets[0].id)
+        self.inner_methods = set()
 
     def visit_Attribute(self, node):
         if isinstance(node.ctx, ast.Store) \
@@ -93,7 +88,31 @@ class ClassVisitor(ast.NodeVisitor):
             self.attributes.add(node.attr)
 
     def visit_FunctionDef(self, node):
+        self.inner_methods.add(node.name)
+
+        for method in node.body:
+            method_visitor = MethodVisitor()
+            method_visitor.visit(method)
+            self.attributes = set.union(self.attributes, method_visitor.attributes)
+
+
+class ClassVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.methods = set()
+        self.attributes = set()
+
+    def visit_FunctionDef(self, node):
         self.methods.add(node.name)
+
+        for method in node.body:
+            method_visitor = MethodVisitor()
+            method_visitor.visit(method)
+            self.attributes = self.attributes.union(method_visitor.attributes)
+            self.methods = self.methods.union(method_visitor.inner_methods)
+
+    def visit_Assign(self, node):
+        if isinstance(node.targets[0], ast.Name):
+            self.attributes.add(node.targets[0].id)
 
     @property
     def size(self):
@@ -125,7 +144,7 @@ class OOPVisitor(ast.NodeVisitor):
     def classes_size(self):
         size = 0
         for cls in self.classes:
-            size += len(self.get_class_entities(cls)['methods'])
+            size += self.get_class_entities(cls)['size']
         return size
 
     def get_classes_parameters(self) -> List[Dict]:

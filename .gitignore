@@ -4,6 +4,7 @@ databases/
 notebooks/
 dist/
 old/
+logs/
 *.idea
 *.ipynb_checkpoints
 *.db
@@ -11,5 +12,4 @@ old/
 *.txt
 *.ipynb
 .DS_Store
-commit.txt
 

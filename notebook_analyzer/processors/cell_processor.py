@@ -1,17 +1,17 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
-class CellProcessor():
+class CellProcessor(ABC):
     task_mapping = {}
     cell = {}
 
     def process_cell(self, tasks) -> dict:
-        tasks_functions = {
-            task: function
-            for task, function in tasks.items()
-            if (task in self.task_mapping.keys())
-        }
-        for function in tasks_functions:
+        functions = [
+            function for function, executing in tasks.items()
+            if (function in self.task_mapping.keys() and executing is True)
+        ]
+
+        for function in functions:
             self.cell[function] = self.task_mapping[function](self.cell)
 
         return self.cell

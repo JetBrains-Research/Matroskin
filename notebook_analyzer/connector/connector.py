@@ -10,7 +10,7 @@ class Connector:
         self.engine = create_engine(f"sqlite:///{db_name}")
 
         if isinstance(notebook_id, int):
-            self.data = NotebookReaderDb(notebook_id, db_name)
+            self.data = NotebookReaderDb(notebook_id, self.engine)
 
         elif isinstance(notebook_id, str):
             if notebook_id[-2:] == 'py':  # Handling python scripts

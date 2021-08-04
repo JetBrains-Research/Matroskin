@@ -1,5 +1,6 @@
 import urllib.request
 import nbformat
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.exc import OperationalError
@@ -68,11 +69,11 @@ class NotebookReaderDb(NotebookReader):
     _metadata = {}
     _cells = []
 
-    def __init__(self, notebook_id, db_name):
+    def __init__(self, notebook_id, engine):
         self.notebook_id = notebook_id
-        self.engine = create_engine(f"sqlite:///{db_name}")
-
+        self.engine = engine
         session = sessionmaker(bind=self.engine)()
+
         with session as conn:
             self._metadata = self.get_notebook_from_db(conn)
             self._cells = self.get_cells_from_db(conn)
@@ -86,14 +87,11 @@ class NotebookReaderDb(NotebookReader):
         return self._cells
 
     def get_notebook_from_db(self, conn):
-        try:
-            ntb_row = conn.query(NotebookDb). \
-                where(NotebookDb.notebook_id == self.notebook_id).first()
+        ntb_row = conn.query(NotebookDb). \
+            where(NotebookDb.notebook_id == self.notebook_id).first()
 
-        except OperationalError as e:
-            with open("../logs/log.txt", "a") as f:
-                f.write(f'\t{e}\n')
-            return None
+        if not ntb_row:
+            raise Exception(f'There is no id = {self.notebook_id} in database')
 
         ntb = self.row_to_dict(ntb_row)
         metadata = {
@@ -122,11 +120,12 @@ class NotebookReaderDb(NotebookReader):
         cells = []
         for cell_type, cells_list in cells_dict.items():
             for cell in cells_list:
-                cells.append({
-                    'type': cell_type,
+                cell.update({
                     'num': cell['cell_num'],
-                    'source': cell['source']
+                    'type': cell_type
                 })
+                cells.append(cell)
+
         return cells
 
     @staticmethod
@@ -155,7 +154,8 @@ class ScriptReader(NotebookReader):
         return self._cells
 
     def get_script_source(self):
-        route = '../databases/20kk_dataset/'
+
+        route = os.path.abspath('path') + '/'
         path = route + self._metadata['name']
         with open(path, 'r', encoding="utf-8") as f:
             source = f.read()
