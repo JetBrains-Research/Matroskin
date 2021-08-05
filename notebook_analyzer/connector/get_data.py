@@ -1,12 +1,12 @@
-import nbformat
-import urllib.request
 import urllib.request
 import nbformat
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
+from sqlalchemy.exc import OperationalError
 from abc import ABC
 
-import db_structures
+from .db_structures import NotebookDb, CellDb, CodeCellDb, MdCellDb
 
 
 class NotebookReader(ABC):
@@ -14,11 +14,11 @@ class NotebookReader(ABC):
     _cells = []
 
     @property
-    def get_notebook(self) -> dict:
+    def metadata(self) -> dict:
         return self._metadata
 
     @property
-    def get_cells(self) -> list:
+    def cells(self) -> list:
         return self._cells
 
 
@@ -35,11 +35,11 @@ class NotebookReaderAmazon(NotebookReader):
         self._cells = self.get_cells_from_notebook(notebook)
 
     @property
-    def get_notebook(self):
+    def metadata(self):
         return self._metadata
 
     @property
-    def get_cells(self):
+    def cells(self):
         return self._cells
 
     def download_notebook_amazon(self):
@@ -69,12 +69,11 @@ class NotebookReaderDb(NotebookReader):
     _metadata = {}
     _cells = []
 
-    def __init__(self, notebook_id, db_name):
+    def __init__(self, notebook_id, engine):
         self.notebook_id = notebook_id
-        self.engine = create_engine(f"sqlite:///{db_name}")
-        self.engine.dispose()
-
+        self.engine = engine
         session = sessionmaker(bind=self.engine)()
+
         with session as conn:
             self._metadata = self.get_notebook_from_db(conn)
             self._cells = self.get_cells_from_db(conn)
@@ -88,8 +87,11 @@ class NotebookReaderDb(NotebookReader):
         return self._cells
 
     def get_notebook_from_db(self, conn):
-        ntb_row = conn.query(db_structures.NotebookDb). \
-            where(db_structures.NotebookDb.notebook_id == self.notebook_id).first()
+        ntb_row = conn.query(NotebookDb). \
+            where(NotebookDb.notebook_id == self.notebook_id).first()
+
+        if not ntb_row:
+            raise Exception(f'There is no id = {self.notebook_id} in database')
 
         ntb = self.row_to_dict(ntb_row)
         metadata = {
@@ -102,14 +104,14 @@ class NotebookReaderDb(NotebookReader):
 
     def get_rows_filtered_by_notebook_id(self, table, conn):
         return (conn.query(table)
-                .filter(db_structures.CellDb.notebook_id == self.notebook_id)
-                .filter(db_structures.CellDb.cell_id == table.cell_id)
+                .filter(CellDb.notebook_id == self.notebook_id)
+                .filter(CellDb.cell_id == table.cell_id)
                 ).all()
 
     def get_cells_from_db(self, conn):
-        code_rows = self.get_rows_filtered_by_notebook_id(db_structures.CodeCellDb,
+        code_rows = self.get_rows_filtered_by_notebook_id(CodeCellDb,
                                                           conn)
-        md_rows = self.get_rows_filtered_by_notebook_id(db_structures.MdCellDb,
+        md_rows = self.get_rows_filtered_by_notebook_id(MdCellDb,
                                                         conn)
 
         cells_dict = {'code': [self.row_to_dict(row) for row in code_rows],
@@ -118,11 +120,12 @@ class NotebookReaderDb(NotebookReader):
         cells = []
         for cell_type, cells_list in cells_dict.items():
             for cell in cells_list:
-                cells.append({
-                    'type': cell_type,
+                cell.update({
                     'num': cell['cell_num'],
-                    'source': cell['source']
+                    'type': cell_type
                 })
+                cells.append(cell)
+
         return cells
 
     @staticmethod
@@ -131,3 +134,31 @@ class NotebookReaderDb(NotebookReader):
             (col, getattr(row, col))
             for col in row.__table__.columns.keys()
         )
+
+
+class ScriptReader(NotebookReader):
+    _metadata = {}
+    _cells = []
+
+    def __init__(self, name):
+        self._metadata['name'] = name
+        self._metadata['language'], self._metadata['version'] = 'python', 'None'
+        self._cells = [self.get_script_source()]
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def cells(self):
+        return self._cells
+
+    def get_script_source(self):
+
+        route = os.path.abspath('path') + '/'
+        path = route + self._metadata['name']
+        with open(path, 'r', encoding="utf-8") as f:
+            source = f.read()
+        if len(source) > 20_000:
+            source = ''
+        return {'type': 'code', 'num': 1, 'source': source}

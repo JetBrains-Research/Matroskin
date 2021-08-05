@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, Boolean, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, Text, Boolean, ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -28,6 +28,17 @@ class CodeCellDb(base):
     code_instructions_count = Column(Integer, default=0)
     code_lines_count = Column(Integer, default=0)
     code_chars_count = Column(Integer, default=0)
+    ccn = Column(Integer, default=0)
+    halstead = Column(Integer, default=0)
+    sloc = Column(Integer, default=0)
+    comments_count = Column(Integer, default=0)
+    operation_complexity = Column(Float, default=0)
+    classes_size = Column(Integer, default=0)
+    npavg = Column(Float, default=0)
+    functions_count = Column(Integer, default=0)
+    override_methods_count = Column(Integer, default=0)
+    new_methods_count = Column(Integer, default=0)
+
     source = Column(Text)
 
 
