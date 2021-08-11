@@ -7,8 +7,7 @@ from notebook_analyzer import Notebook, create_db
 from examples_utils import log_exceptions, set_nlp_model, timing
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/testik_new.db')
-
+db_name = os.path.join(BASE_DIR, '../databases/aggregated.db')
 config = {
     'markdown': {
         'cell_language': False,
@@ -26,7 +25,7 @@ config = {
 
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=6)
+ray.init(num_cpus=6, log_to_driver=False)
 
 
 @ray.remote
@@ -41,8 +40,8 @@ def add_notebook(name):
 
 @timing
 def main():
-    scripts_input = True
-    start, step = 0, 100
+    scripts_input = False
+    start, step = 5_400_000, 100
 
     if not scripts_input:
         with open('../databases/ntbs_list.json', 'r') as file:
@@ -58,13 +57,12 @@ def main():
     pbar = tqdm(result_ids)
     for result_id in pbar:
         res.append(ray.get(result_id))
-        pbar.set_postfix(errors=f'{(len(res) - sum(res))} ({(len(res) - sum(res)) / len(result_ids) * 100}%)')
+        errors = len(res) - sum(res)
+        errors_percentage = round(errors / len(result_ids) * 100, 1)
+        pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')
 
     print('Finishing...')
-    print('{} notebooks contain errors ({:.1f}%) '.format(
-        len(res) - sum(res),
-        (len(res) - sum(res)) / len(res) * 100
-    ))
+    print(f'{errors} notebooks contain errors ({errors_percentage}%) ')
 
 
 if __name__ == '__main__':

@@ -12,14 +12,52 @@ operation_complexity_weight = {
 }
 
 
+class GetInnerUsedFunctions(ast.NodeVisitor):
+    def __init__(self):
+        self.used_functions = set()
+
+    def visit(self, tree):
+        ast.NodeVisitor.visit(self, tree)
+        return self.used_functions
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Name):
+            self.used_functions.add(node.func.id)
+        else:
+            self.used_functions.add(node.func.attr)
+
+
+class FunctionDefsVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.functions_and_components = []
+
+    def visit(self, tree) -> List[Dict[str, List[str]]]:
+        ast.NodeVisitor.visit(self, tree)
+        return self.functions_and_components
+
+    def visit_FunctionDef(self, node):
+        v = GetInnerUsedFunctions()
+
+        self.functions_and_components.append({
+            'function_name': node.name,
+            'inner_used_functions': v.visit(node)
+        })
+
+
 class ComplexityVisitor(ast.NodeVisitor):
     def __init__(self):
         self.operation_complexity = 0
         self.imports = []
         self.functions = []
+        self.variables = set([])
+        self.functions_and_components = []
 
     def visit(self, node):
         super().visit(node)
+
+        functions_visitor = FunctionDefsVisitor()
+        functions_visitor.visit(node)
+        self.functions_and_components = functions_visitor.functions_and_components
 
         if isinstance(node, (ast.AsyncFor, ast.While, ast.If,
                              ast.With, ast.AsyncWith)):
@@ -31,9 +69,15 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.operation_complexity += operation_complexity_weight['binary_op']
 
     def visit_Assign(self, node):
+        if isinstance(node.targets[0], ast.Name):
+            self.variables.add(node.targets[0].id)
         self.operation_complexity += operation_complexity_weight['assign']
 
     def visit_Call(self, node):
+        for v in node.args:
+            if isinstance(v, ast.Name):
+                self.variables.add(v.id)
+
         if isinstance(node.func, (ast.Attribute, ast.Call)):
             self.operation_complexity += operation_complexity_weight['call']
         if isinstance(node, ast.Call):
@@ -50,6 +94,12 @@ class ComplexityVisitor(ast.NodeVisitor):
 
     def get_imports(self):
         return self.imports
+
+    def get_defined_functions(self):
+        functions = set()
+        for fc in self.functions_and_components:
+            functions.add(fc['function_name'])
+        return functions
 
     @staticmethod
     def get_cyclomatic_complexity(cell_ast):
@@ -100,9 +150,15 @@ class ClassVisitor(ast.NodeVisitor):
     def __init__(self):
         self.methods = set()
         self.attributes = set()
+        self.private_methods = set()
+        self.protected_methods = set()
 
     def visit_FunctionDef(self, node):
         self.methods.add(node.name)
+        if node.name.startswith('__'):
+            self.private_methods.add(node.name)
+        elif node.name.startswith('_') and not node.name.startswith('__'):
+            self.protected_methods.add(node.name)
 
         for method in node.body:
             method_visitor = MethodVisitor()
@@ -137,7 +193,9 @@ class OOPVisitor(ast.NodeVisitor):
         return {
             'methods': visitor.methods,
             'attributes': visitor.attributes,
-            'size': visitor.size
+            'size': visitor.size,
+            'private_methods': visitor.private_methods,
+            'protected_methods': visitor.protected_methods
         }
 
     @property
@@ -146,6 +204,41 @@ class OOPVisitor(ast.NodeVisitor):
         for cls in self.classes:
             size += self.get_class_entities(cls)['size']
         return size
+
+    def get_mean_methods_coupling(self):
+        couplings = []
+        for cls in self.classes:
+            functions_visitor = FunctionDefsVisitor()
+            functions_visitor.visit(cls)
+            functions_and_components = functions_visitor.functions_and_components
+            couplings.append(self.get_class_methods_coupling(functions_and_components))
+
+        return sum(couplings) / max(1, len(couplings))
+
+    def get_class_methods_coupling(self, functions_and_components):
+        inner_functions_in_methods = []
+        for fc in functions_and_components:
+            inner_functions_in_methods.append(fc['inner_used_functions'])
+
+        coupling = 0
+        for i, functions_i in enumerate(inner_functions_in_methods):
+            for j, functions_j in enumerate(inner_functions_in_methods[i:]):
+                tmp = functions_i.intersection(functions_j)
+                coupling += len(tmp)
+        return coupling
+
+    def get_non_public_methods_count(self):
+        private_count = 0
+        protected_count = 0
+        for cls in self.classes:
+            private_count += len(self.get_class_entities(cls)['private_methods'])
+            protected_count += len(self.get_class_entities(cls)['protected_methods'])
+
+        count_dict = {
+            'private_methods_count': private_count,
+            'protected_methods_count': protected_count
+        }
+        return count_dict
 
     def get_classes_parameters(self) -> List[Dict]:
         res = []

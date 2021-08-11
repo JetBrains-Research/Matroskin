@@ -1,9 +1,7 @@
 import urllib.request
 import nbformat
 import os
-from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy.exc import OperationalError
 from abc import ABC
 
 from .db_structures import NotebookDb, CellDb, CodeCellDb, MdCellDb

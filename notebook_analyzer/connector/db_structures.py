@@ -32,13 +32,19 @@ class CodeCellDb(base):
     halstead = Column(Integer, default=0)
     sloc = Column(Integer, default=0)
     comments_count = Column(Integer, default=0)
+    blank_lines_count = Column(Integer, default=0)
     operation_complexity = Column(Float, default=0)
     classes_size = Column(Integer, default=0)
     npavg = Column(Float, default=0)
     functions_count = Column(Integer, default=0)
     override_methods_count = Column(Integer, default=0)
     new_methods_count = Column(Integer, default=0)
-
+    private_methods_count = Column(Integer, default=0)
+    protected_methods_count = Column(Integer, default=0)
+    variables = Column(Text, default='')
+    functions_and_inners = Column(Text, default='')
+    mean_classes_coupling = Column(Float, default=0)
+    defined_functions = Column(Text, default='')
     source = Column(Text)
 
 
