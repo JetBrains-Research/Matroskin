@@ -94,13 +94,9 @@ class CodeProcessor(CellProcessor):
             'npavg': self.complexity_visitor.npavg,
             'functions_count': len(self.complexity_visitor.functions),
             'variables': " ".join(list(self.complexity_visitor.variables)),
-            'defined_functions': " ".join(list(self.complexity_visitor.get_defined_functions())),
-            'functions_and_inners': '\n'.join(
-                [
-                    f"{i['function_name']}: {' '.join(list(i['inner_used_functions']))}"  # TODO Kostyl' because of db type 'Text'
-                    for i in self.complexity_visitor.functions_and_components
-                ]
-            )
+            'defined_functions': " ".join(list(self.complexity_visitor.defined_functions)),
+            'inner_functions': self.complexity_visitor.inner_functions,
+            'used_functions': self.complexity_visitor.used_functions
         }
         return complexity_metrics
 

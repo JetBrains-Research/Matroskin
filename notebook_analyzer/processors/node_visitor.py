@@ -1,5 +1,6 @@
 import gast as ast
-from typing import List, Dict
+from typing import List, Dict, Tuple, Set
+from itertools import combinations
 from radon.metrics import h_visit_ast
 from radon.complexity import cc_visit_ast, add_inner_blocks
 
@@ -14,34 +15,43 @@ operation_complexity_weight = {
 
 class GetInnerUsedFunctions(ast.NodeVisitor):
     def __init__(self):
-        self.used_functions = set()
+        self.inner_functions = set()
+        self.used_functions = []
 
     def visit(self, tree):
         ast.NodeVisitor.visit(self, tree)
-        return self.used_functions
+        return {
+            'used_functions': self.used_functions,
+            'inner_functions': self.inner_functions
+        }
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name):
-            self.used_functions.add(node.func.id)
+            self.inner_functions.add(node.func.id)
+            self.used_functions.append(node.func.id)
         else:
-            self.used_functions.add(node.func.attr)
+            self.inner_functions.add(node.func.attr)
+            self.used_functions.append(node.func.attr)
 
 
 class FunctionDefsVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.functions_and_components = []
+        self.defined_functions = set([])
+        self.inner_functions = []
+        self.used_functions = []
 
-    def visit(self, tree) -> List[Dict[str, List[str]]]:
+    def visit(self, tree):
         ast.NodeVisitor.visit(self, tree)
-        return self.functions_and_components
+        return {'defined_functions': self.defined_functions,
+                'inner_functions': self.inner_functions}
 
     def visit_FunctionDef(self, node):
         v = GetInnerUsedFunctions()
 
-        self.functions_and_components.append({
-            'function_name': node.name,
-            'inner_used_functions': v.visit(node)
-        })
+        self.defined_functions.add(node.name)
+        functions = v.visit(node)
+        self.inner_functions.append(functions['inner_functions'])
+        self.used_functions = functions['used_functions']
 
 
 class ComplexityVisitor(ast.NodeVisitor):
@@ -50,14 +60,18 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.imports = []
         self.functions = []
         self.variables = set([])
-        self.functions_and_components = []
+        self.defined_functions = []
+        self.inner_functions = []
+        self.used_functions = []
 
     def visit(self, node):
         super().visit(node)
 
         functions_visitor = FunctionDefsVisitor()
         functions_visitor.visit(node)
-        self.functions_and_components = functions_visitor.functions_and_components
+        self.defined_functions = functions_visitor.defined_functions
+        self.inner_functions = functions_visitor.inner_functions
+        self.used_functions += functions_visitor.used_functions
 
         if isinstance(node, (ast.AsyncFor, ast.While, ast.If,
                              ast.With, ast.AsyncWith)):
@@ -94,12 +108,6 @@ class ComplexityVisitor(ast.NodeVisitor):
 
     def get_imports(self):
         return self.imports
-
-    def get_defined_functions(self):
-        functions = set()
-        for fc in self.functions_and_components:
-            functions.add(fc['function_name'])
-        return functions
 
     @staticmethod
     def get_cyclomatic_complexity(cell_ast):
@@ -205,26 +213,26 @@ class OOPVisitor(ast.NodeVisitor):
             size += self.get_class_entities(cls)['size']
         return size
 
+    @staticmethod
+    def get_sets_coupling(pair: Tuple[Set, Set]) -> int:
+        a, b = pair
+        return len(a.intersection(b))
+
     def get_mean_methods_coupling(self):
         couplings = []
         for cls in self.classes:
             functions_visitor = FunctionDefsVisitor()
             functions_visitor.visit(cls)
-            functions_and_components = functions_visitor.functions_and_components
-            couplings.append(self.get_class_methods_coupling(functions_and_components))
+            inner_functions = functions_visitor.inner_functions
+            couplings.append(self.get_class_methods_coupling(inner_functions))
 
         return sum(couplings) / max(1, len(couplings))
 
-    def get_class_methods_coupling(self, functions_and_components):
-        inner_functions_in_methods = []
-        for fc in functions_and_components:
-            inner_functions_in_methods.append(fc['inner_used_functions'])
-
+    def get_class_methods_coupling(self, inner_functions_in_methods):
         coupling = 0
-        for i, functions_i in enumerate(inner_functions_in_methods):
-            for j, functions_j in enumerate(inner_functions_in_methods[i:]):
-                tmp = functions_i.intersection(functions_j)
-                coupling += len(tmp)
+        for pair in combinations(inner_functions_in_methods, 2):
+            coupling += self.get_sets_coupling(pair)
+
         return coupling
 
     def get_non_public_methods_count(self):

@@ -25,6 +25,23 @@ def write_notebook_to_db(conn, nb_metadata, cells):
         return 0
 
 
+def write_features_to_db(conn, nb_metadata, features):
+    nbf = db_structures.NotebookFeaturesDb(
+        notebook_id=nb_metadata['id']
+    )
+    cell_flatten = flatten(features)
+    for key in cell_flatten.keys():
+        cell_attributes = [name for name in dir(nbf)
+                           if not name.startswith('_')]
+        if key in cell_attributes:
+            setattr(nbf, key, cell_flatten[key])
+
+    conn.add(nbf)
+    conn.commit()
+
+    return cell_flatten
+
+
 def write_cells_to_db(conn, cells, notebook_id):
     cells_to_db = []
     processed_cells = []

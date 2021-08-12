@@ -42,9 +42,10 @@ class CodeCellDb(base):
     private_methods_count = Column(Integer, default=0)
     protected_methods_count = Column(Integer, default=0)
     variables = Column(Text, default='')
-    functions_and_inners = Column(Text, default='')
     mean_classes_coupling = Column(Float, default=0)
     defined_functions = Column(Text, default='')
+    #inner_functions = Column(Text, default='')
+
     source = Column(Text)
 
 
@@ -71,6 +72,25 @@ class NotebookFeaturesDb(base):
     md_cells_count = Column(Integer)
     code_cells_count = Column(Integer)
     notebook_imports = Column(Text)
+
+    ccn = Column(Float, default=0)
+    halstead = Column(Float, default=0)
+    npavg = Column(Float, default=0)
+
+    sloc = Column(Integer, default=0)
+    comments_count = Column(Integer, default=0)
+    blank_lines_count = Column(Integer, default=0)
+    classes = Column(Integer, default=0)
+    classes_comments = Column(Integer, default=0)
+    mean_new_methods = Column(Integer, default=0)
+    mean_override_methods = Column(Float, default=0)
+    mean_attributes_count = Column(Float, default=0)
+    comments_density = Column(Float, default=0)
+    comments_per_class = Column(Float, default=0)
+
+    coupling_between_cells = Column(Float, default=0)
+    coupling_between_functions = Column(Float, default=0)
+    coupling_between_methods = Column(Float, default=0)
 
 
 def create_db(name):

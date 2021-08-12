@@ -20,15 +20,7 @@ config = {
         'code_imports': True,
         'code_chars_count': True,
         'metrics': True
-    },
-    'notebook': {
-            'general_metrics': True,
-            'complexity_metrics': True,
-            'coupling_between_cells': True,
-            'coupling_between_functions': True,
-            'coupling_between_methods': True,
-            'functions_statistics': True
-        }
+    }
 }
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
@@ -39,8 +31,7 @@ ray.init(num_cpus=1, log_to_driver=False)
 @log_exceptions
 def get_notebook(notebook_id):
     nb = Notebook(notebook_id, db_name)
-    features = nb.aggregate_tasks(config)
-    return {'cells': nb.cells, 'metadata': nb.metadata, 'features': features}
+    return {'cells': nb.cells, 'metadata': nb.metadata}
 
 
 @timing
@@ -64,7 +55,9 @@ def main():
     notebooks = [notebook for notebook in notebooks if notebook]
     for notebook in notebooks:
         print(notebook['features'])
-
+    import pandas as pd
+    df = pd.DataFrame(cell for cell in notebooks[3]['cells'])
+    df.to_pickle('../databases/df.plk')  # where to save it, usually as a .pkl
 
 if __name__ == '__main__':
     main()
