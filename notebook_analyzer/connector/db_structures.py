@@ -68,10 +68,10 @@ class NotebookFeaturesDb(base):
     __tablename__ = 'Notebook_features'
     notebook_id = Column(Integer, ForeignKey('Notebook.notebook_id'),
                          primary_key=True)
-    notebook_cells_number = Column(Integer)
-    md_cells_count = Column(Integer)
-    code_cells_count = Column(Integer)
-    notebook_imports = Column(Text)
+    notebook_cells_number = Column(Integer, default=0)
+    md_cells_count = Column(Integer, default=0)
+    code_cells_count = Column(Integer, default=0)
+    notebook_imports = Column(Text, default='')
 
     ccn = Column(Float, default=0)
     halstead = Column(Float, default=0)

@@ -1,12 +1,13 @@
 import ray
 import os.path
 from tqdm import tqdm
+import pandas as pd
 
 from notebook_analyzer import Notebook
 from examples_utils import log_exceptions, set_nlp_model, timing
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/aggregated.db')
+db_name = os.path.join(BASE_DIR, '../databases/aggregated_1k_scripts.db')
 
 config = {
     'markdown': {
@@ -24,19 +25,19 @@ config = {
 }
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=1, log_to_driver=False)
+ray.init(num_cpus=6, log_to_driver=False)
 
 
 @ray.remote
 @log_exceptions
 def get_notebook(notebook_id):
     nb = Notebook(notebook_id, db_name)
-    return {'cells': nb.cells, 'metadata': nb.metadata}
+    return {'cells': nb.cells, 'metadata': nb.metadata, 'features': nb.features}
 
 
 @timing
 def main():
-    notebook_ids = [i for i in range(1, 10)]
+    notebook_ids = [i for i in range(1, 100)]
     multiprocessing = True
     notebooks = []
 
@@ -52,12 +53,12 @@ def main():
         for idx in pbar:
             notebooks.append(get_notebook(idx))
 
-    notebooks = [notebook for notebook in notebooks if notebook]
-    for notebook in notebooks:
-        print(notebook['features'])
-    import pandas as pd
-    df = pd.DataFrame(cell for cell in notebooks[3]['cells'])
-    df.to_pickle('../databases/df.plk')  # where to save it, usually as a .pkl
+    notebooks_features = [notebook['features'] for notebook in notebooks if notebook]
+    notebooks_cells = [notebook['cells'] for notebook in notebooks if notebook]
+    notebook_metadata = [notebook['metadata'] for notebook in notebooks if notebook]
+
+    print(pd.DataFrame(notebooks_features).head())
+
 
 if __name__ == '__main__':
     main()

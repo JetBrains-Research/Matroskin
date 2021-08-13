@@ -38,6 +38,7 @@ ray.init(num_cpus=6, log_to_driver=False)
 
 
 @ray.remote
+@log_exceptions
 def add_notebook(name):
     nb = Notebook(name, db_name)
     success = nb.add_nlp_model(nlp)
@@ -50,8 +51,8 @@ def add_notebook(name):
 
 @timing
 def main():
-    scripts_input = False
-    start, step = 5_900_000, 20  # 5_400_000, 1000
+    scripts_input = True
+    start, step = 100_000, 200  # 5_400_000, 1000
 
     if not scripts_input:
         with open('../databases/ntbs_list.json', 'r') as file:
@@ -74,6 +75,11 @@ def main():
     print('Finishing...')
     print(f'{errors} notebooks contain errors ({errors_percentage}%) ')
 
+    # pbar = tqdm(ntb_list)
+    # for name in pbar:
+    #     res.append(add_notebook(name))
+    #
+    # print('Finishing...')
 
 if __name__ == '__main__':
     main()

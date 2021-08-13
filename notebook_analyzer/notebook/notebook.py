@@ -41,16 +41,24 @@ class Aggregator:
         df = self.cells_df
 
         notebook_metrics = {
-            'sloc': df.sloc.sum(),
-            'comments_count': df.comments_count.sum(),
-            'blank_lines_count': df.comments_count.sum(),
-            'classes': df[df.classes_size > 0]. \
+            'notebook_cells_number': df.shape[0],
+            'code_cells_count': sum(df.type == 'code'),
+            'md_cells_count': sum(df.type == 'markdown'),
+            'notebook_imports': " ".join(df.code_imports.replace('', float('NaN')).dropna()),
+            'sloc': int(df.sloc.sum()),
+            'comments_count': max(int(df.comments_count.sum()), 0),
+            'blank_lines_count': max(int(df.blank_lines_count.sum()), 0),
+            'classes': int(
+                df[df.classes_size > 0]. \
                 classes_size. \
-                dropna().astype(bool).sum(),
+                dropna().astype(bool).sum()
+            ),
 
-            'classes_comments': df[df.classes_size > 0]. \
+            'classes_comments': int(
+                df[df.classes_size > 0]. \
                 comments_count. \
-                dropna().sum(),
+                dropna().sum()
+            ),
 
             'mean_attributes_count': (df.classes_size
                                       - df.new_methods_count
@@ -65,9 +73,11 @@ class Aggregator:
         count_markdown = True
         if count_markdown:
             default_length = 1
-            notebook_metrics['comments_count'] += df[df.type == 'markdown']. \
+            notebook_metrics['comments_count'] += int(
+                df[df.type == 'markdown']. \
                 source. \
                 apply(lambda lines: lines.count('\n') + default_length).sum()
+            )
 
         notebook_metrics['comments_density'] = notebook_metrics['comments_count'] \
                                                / (notebook_metrics['sloc'] + notebook_metrics['comments_count'])
@@ -79,10 +89,9 @@ class Aggregator:
 
     def get_coupling_between_cells(self):
         pair_combination = 2
-        nan_value = float("NaN")
         cells_variables = self.cells_df.variables. \
-            replace("", nan_value).dropna().apply(
-            lambda ss: set(ss.split(' '))
+            replace("", float("NaN")).dropna().apply(
+            lambda variables_string: set(variables_string.split(' '))
         )
 
         coupling = 0
@@ -94,14 +103,10 @@ class Aggregator:
     def get_coupling_between_functions(self):
         """
         cells_df.inner_functions: Series[ List[ Set, ... , Set ] ]
-
-        It's disgusting...
         """
-        pair_combination = 2
 
-        inner_functions_sets = []
-        for list_of_sets in self.cells_df.inner_functions.dropna():
-            inner_functions_sets += [functions_set for functions_set in list_of_sets]
+        pair_combination = 2
+        inner_functions_sets = self.cells_df.inner_functions.explode().dropna()
 
         coupling = 0
         for pair in combinations(inner_functions_sets, pair_combination):
@@ -113,47 +118,45 @@ class Aggregator:
         """
         Mean Coupling in cells which have methods in it
         """
+
         mean_coupling = self.cells_df[self.cells_df.mean_classes_coupling > 0]. \
             mean_classes_coupling.dropna().mean()
 
         mean_coupling = mean_coupling if mean_coupling == float("NaN") else 0
         return mean_coupling
 
-    @staticmethod
-    def flatten_list(lst):
-        return [item for sublist in lst for item in sublist if item]
-
-    def get_functions_statistics(self):  # TODO Refactor storing of defined_functions, used_functions ...
+    def get_functions_statistics(self):
         """
         cells_df.defined_functions: Series[ String['fun_1 fun_2 ... fun_n'] ]
         cells_df.used_functions: Series[ List[ String, ... , String ] ]
         cells_df.inner_functions: Series[ List[ Set, ... , Set ] ]
 
-        It's disgusting...
+        Not great not terrible...
         """
-        defined_functions = self.cells_df.defined_functions. \
-            dropna().apply(lambda line: line.split(' '))
 
-        defined_functions = set(self.flatten_list(defined_functions))
-        used_functions = self.flatten_list([*[functions for functions in self.cells_df.used_functions.dropna()]])
+        defined_functions_series = self.cells_df.defined_functions. \
+            replace("", float('Nan')).dropna().apply(lambda line: line.split(' ')).explode()
+        defined_functions_set = set(defined_functions_series)
 
-        inner_functions_sets = []
-        print(self.cells_df.inner_functions.dropna())
-        for list_of_sets in self.cells_df.inner_functions.dropna():
-            inner_functions_sets += [functions_set for functions_set in list_of_sets]
+        used_functions_series = self.cells_df.used_functions. \
+            explode().replace('', float('Nan')).dropna()
 
-        inner_functions = set.union(*inner_functions_sets) if inner_functions_sets else set()
-        all_functions = defined_functions.union(inner_functions)
-        api_functions = all_functions.difference(defined_functions)
+        inner_functions_series = self.cells_df.used_functions. \
+            explode().replace('', float('Nan')).dropna()
+        inner_functions_set = set(inner_functions_series)
+
+        all_functions_set = defined_functions_set.union(inner_functions_set)
+        api_functions_set = all_functions_set.difference(defined_functions_set)
 
         stats = {
-            'API_functions_count': len(api_functions),
-            'defined_functions_count': len(defined_functions),
-            'API_functions_uses': len([f for f in used_functions
-                                       if f not in defined_functions]),
-            'defined_functions_uses': len([f for f in used_functions
-                                       if f in defined_functions])
+            'API_functions_count': len(api_functions_set),
+            'defined_functions_count': len(defined_functions_set),
+            'API_functions_uses': len([f for f in used_functions_series
+                                       if f not in defined_functions_set]),
+            'defined_functions_uses': len([f for f in used_functions_series
+                                           if f in defined_functions_set])
         }
+
         return stats
 
     def get_mean_complexity_metrics(self):
@@ -185,6 +188,7 @@ class Notebook(object):
     aggregator = Aggregator()
     cells = []
     metadata = {}
+    features = {}
     nlp = None
 
     def __init__(self, name, db_name=""):
@@ -193,6 +197,7 @@ class Notebook(object):
         self.engine = connector.engine
         self.metadata = connector.data.metadata
         self.cells = connector.data.cells
+        self.features = connector.data.features
 
     def add_nlp_model(self, nlp):
         self.nlp = nlp
@@ -218,8 +223,9 @@ class Notebook(object):
     def aggregate_tasks(self, config):
         session = sessionmaker(bind=self.engine)()
         flatten_cells = [flatten(cell) for cell in self.cells]
-        features = self.aggregator.run_tasks(flatten_cells, config['notebook'])
+        self.features = self.aggregator.run_tasks(flatten_cells, config['notebook'])
+
         with session as conn:
-            flatten_features = write_features_to_db(conn, self.metadata, features)
+            flatten_features = write_features_to_db(conn, self.metadata, self.features)
 
         return flatten_features
