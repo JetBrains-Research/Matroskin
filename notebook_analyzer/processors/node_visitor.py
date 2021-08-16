@@ -3,7 +3,7 @@ from typing import List, Dict, Tuple, Set
 from itertools import combinations
 from radon.metrics import h_visit_ast
 from radon.complexity import cc_visit_ast, add_inner_blocks
-
+import beniget
 
 operation_complexity_weight = {
     'branching': 0.5,
@@ -54,6 +54,27 @@ class FunctionDefsVisitor(ast.NodeVisitor):
         self.used_functions = functions['used_functions']
 
 
+class GetImports(ast.NodeVisitor):
+    def __init__(self):
+        self.imports = []
+        self.aliases = []
+        super().__init__()
+
+    def visit(self, node):
+        super().visit(node)
+
+        return self.imports
+
+    def visit_Import(self, node):
+        self.imports += [alias.name for alias in node.names]
+        self.aliases += [alias for alias in node.names]
+
+    def visit_ImportFrom(self, node):
+        self.imports += [f'{alias.name}'
+                         for alias in node.names]
+        self.aliases += [alias for alias in node.names]
+
+
 class ComplexityVisitor(ast.NodeVisitor):
     def __init__(self):
         self.operation_complexity = 0
@@ -63,6 +84,7 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.defined_functions = []
         self.inner_functions = []
         self.used_functions = []
+        self.import_aliases = []
 
     def visit(self, node):
         super().visit(node)
@@ -101,13 +123,30 @@ class ComplexityVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node):
         self.imports += [alias.name for alias in node.names]
+        self.import_aliases += [alias for alias in node.names]
 
     def visit_ImportFrom(self, node):
         self.imports += [f'{node.module}.{alias.name}'
                          for alias in node.names]
+        self.import_aliases += [alias for alias in node.names]
 
     def get_imports(self):
         return self.imports
+
+    def get_unused_imports(self, node):
+        import_visitor = GetImports()
+        imports = import_visitor.visit(node)
+        aliases = import_visitor.aliases
+        duc = beniget.DefUseChains()
+        duc.visit(node)
+
+        unused_imports = []
+        for name in aliases:
+            ud = duc.chains[name]
+            if not ud.users():
+                unused_imports.append(ud.name())
+
+        return unused_imports
 
     @staticmethod
     def get_cyclomatic_complexity(cell_ast):

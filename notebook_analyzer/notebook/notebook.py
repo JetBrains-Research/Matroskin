@@ -45,6 +45,7 @@ class Aggregator:
             'code_cells_count': sum(df.type == 'code'),
             'md_cells_count': sum(df.type == 'markdown'),
             'notebook_imports': " ".join(df.code_imports.replace('', float('NaN')).dropna()),
+            'unused_imports_total': int(df.unused_imports_count.dropna().sum()),
             'sloc': int(df.sloc.sum()),
             'comments_count': max(int(df.comments_count.sum()), 0),
             'blank_lines_count': max(int(df.blank_lines_count.sum()), 0),

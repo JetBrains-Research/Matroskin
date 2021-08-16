@@ -1,0 +1,34 @@
+sql:
+    route_to_db: ../databases/aggregated_1k_notebooks.db
+
+ray_multiprocessing:
+    num_cpu: 6
+
+data:
+    route_to_notebooks: ../databases/ntbs_list.json
+    route_to_scripts: ../databases/20kk_scripts.txt
+    download_scripts: True
+    download_notebooks: False
+    sample_size: 50
+    seed: 1
+
+metrics:
+    'markdown':
+      'cell_language': False
+      'sentences_count': False
+      'unique_words': False
+      'content': False
+
+    'code':
+      'code_instructions_count': True
+      'code_imports': True
+      'code_chars_count': True
+      'metrics': True
+
+    'notebook':
+      'general_metrics': True
+      'complexity_metrics': True
+      'coupling_between_cells': True
+      'coupling_between_functions': True
+      'coupling_between_methods': True
+      'functions_statistics': True

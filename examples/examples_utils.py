@@ -1,7 +1,7 @@
 import time
-import spacy
-from spacy_langdetect import LanguageDetector
-from spacy.language import Language
+# import spacy
+# from spacy_langdetect import LanguageDetector
+# from spacy.language import Language
 from loguru import logger
 
 
@@ -39,13 +39,15 @@ def timing(func):
     return function_wrapper
 
 
-@Language.factory('language_detector')
-def language_detector(nlp, name):
-    return LanguageDetector()
+# @Language.factory('language_detector')
+# def language_detector(nlp, name):
+#     return LanguageDetector()
 
 
 def set_nlp_model():
-    nlp = spacy.load('en_core_web_sm')
-    nlp.max_length = 2000000
-    nlp.add_pipe('language_detector', last=True)
-    return nlp
+    # nlp = spacy.load('en_core_web_sm')
+    # nlp.max_length = 2000000
+    # nlp.add_pipe('language_detector', last=True)
+    # return nlp
+
+    return None

@@ -2,30 +2,18 @@ import ray
 import os.path
 from tqdm import tqdm
 import pandas as pd
+import yaml
 
 from notebook_analyzer import Notebook
 from examples_utils import log_exceptions, set_nlp_model, timing
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/aggregated_1k_scripts.db')
 
-config = {
-    'markdown': {
-        'cell_language': False,
-        'sentences_count': False,
-        'unique_words': False,
-        'content': False,
-    },
-    'code': {
-        'code_instructions_count': True,
-        'code_imports': True,
-        'code_chars_count': True,
-        'metrics': True
-    }
-}
-nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
-nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=6, log_to_driver=False)
+with open("config.yml", "r") as yml_config:
+    cfg = yaml.safe_load(yml_config)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_name = os.path.join(BASE_DIR, cfg['sql']['route_to_db'])
+ray.init(num_cpus=cfg['ray_multiprocessing']['num_cpu'], log_to_driver=False)
 
 
 @ray.remote
@@ -37,7 +25,7 @@ def get_notebook(notebook_id):
 
 @timing
 def main():
-    notebook_ids = [i for i in range(1, 100)]
+    notebook_ids = [i for i in range(1, cfg['data']['sample_size'] + 1)]
     multiprocessing = True
     notebooks = []
 

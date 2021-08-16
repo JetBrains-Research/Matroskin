@@ -44,6 +44,7 @@ class CodeCellDb(base):
     variables = Column(Text, default='')
     mean_classes_coupling = Column(Float, default=0)
     defined_functions = Column(Text, default='')
+    unused_imports_count = Column(Integer, default=0)
     #inner_functions = Column(Text, default='')
 
     source = Column(Text)
@@ -72,6 +73,7 @@ class NotebookFeaturesDb(base):
     md_cells_count = Column(Integer, default=0)
     code_cells_count = Column(Integer, default=0)
     notebook_imports = Column(Text, default='')
+    unused_imports_total = Column(Integer, default=0)
 
     ccn = Column(Float, default=0)
     halstead = Column(Float, default=0)

@@ -13,7 +13,7 @@ class Connector:
             self.data = NotebookReaderDb(notebook_id, self.engine)
 
         elif isinstance(notebook_id, str):
-            if notebook_id[-2:] == 'py':  # Handling python scripts
+            if notebook_id.strip()[-2:] == 'py':  # Handling python scripts
                 self.data = ScriptReader(notebook_id)
             else:
                 self.data = NotebookReaderAmazon(notebook_id)

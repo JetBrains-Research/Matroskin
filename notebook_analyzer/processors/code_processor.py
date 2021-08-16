@@ -96,7 +96,8 @@ class CodeProcessor(CellProcessor):
             'variables': " ".join(list(self.complexity_visitor.variables)),
             'defined_functions': " ".join(list(self.complexity_visitor.defined_functions)),
             'inner_functions': self.complexity_visitor.inner_functions,
-            'used_functions': self.complexity_visitor.used_functions
+            'used_functions': self.complexity_visitor.used_functions,
+            'unused_imports_count': len(self.complexity_visitor.get_unused_imports(self.cell['ast']))
         }
         return complexity_metrics
 
