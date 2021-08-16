@@ -63,6 +63,17 @@ tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)"
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins"]
 
 [[package]]
+name = "beniget"
+version = "0.4.1"
+description = "Extract semantic information about static Python code"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[package.dependencies]
+gast = ">=0.5.0,<0.6.0"
+
+[[package]]
 name = "blessings"
 version = "1.7"
 description = "A thin, practical wrapper around terminal coloring, styling, and positioning"
@@ -146,6 +157,17 @@ description = "Cross-platform colored terminal text."
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[[package]]
+name = "colorful"
+version = "0.5.4"
+description = "Terminal string styling done right, in Python."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cymem"
@@ -659,7 +681,7 @@ mando = ">=0.6,<0.7"
 
 [[package]]
 name = "ray"
-version = "1.5.1"
+version = "1.5.2"
 description = "Ray provides a simple, universal API for building distributed applications."
 category = "main"
 optional = false
@@ -671,6 +693,7 @@ aiohttp-cors = "*"
 aioredis = "<2"
 click = ">=7.0"
 colorama = "*"
+colorful = {version = "*", optional = true, markers = "extra == \"default\""}
 filelock = "*"
 gpustat = "*"
 grpcio = ">=1.28.1"
@@ -690,7 +713,7 @@ redis = ">=3.5.0"
 requests = "*"
 
 [package.extras]
-all = ["pyyaml", "starlette", "pandas", "requests", "gym", "opentelemetry-api (==1.1.0)", "opencv-python-headless (<=4.3.0.36)", "tensorboardX (>=1.9)", "colorful", "dm-tree", "kubernetes", "fastapi", "opentelemetry-exporter-otlp (==1.1.0)", "lz4", "scipy", "uvicorn", "tabulate", "opentelemetry-sdk (==1.1.0)"]
+all = ["pyyaml", "opentelemetry-api (==1.1.0)", "opencv-python-headless (<=4.3.0.36)", "scipy", "starlette", "tabulate", "fastapi", "colorful", "dm-tree", "pandas", "kubernetes", "lz4", "requests", "uvicorn", "tensorboardX (>=1.9)", "opentelemetry-sdk (==1.1.0)", "opentelemetry-exporter-otlp (==1.1.0)", "gym"]
 default = ["colorful"]
 k8s = ["kubernetes"]
 observability = ["opentelemetry-api (==1.1.0)", "opentelemetry-sdk (==1.1.0)", "opentelemetry-exporter-otlp (==1.1.0)"]
@@ -1001,7 +1024,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "722d83599565468544c240e66005dabcbee0631d27e3cbd7ca1f20197127b984"
+content-hash = "41a7dc7bb5a23d8bcdf00f9c2fae2407b6d432d29d979ab76c794908af68c5d9"
 
 [metadata.files]
 aiohttp = [
@@ -1059,6 +1082,10 @@ attrs = [
     {file = "attrs-21.2.0-py2.py3-none-any.whl", hash = "sha256:149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1"},
     {file = "attrs-21.2.0.tar.gz", hash = "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"},
 ]
+beniget = [
+    {file = "beniget-0.4.1-py3-none-any.whl", hash = "sha256:cb061256631313f9d06031b824f7f403baecaf609b2d3d14d43f23356cf143f2"},
+    {file = "beniget-0.4.1.tar.gz", hash = "sha256:75554b3b8ad0553ce2f607627dad3d95c60c441189875b98e097528f8e23ac0c"},
+]
 blessings = [
     {file = "blessings-1.7-py2-none-any.whl", hash = "sha256:caad5211e7ba5afe04367cdd4cfc68fa886e2e08f6f35e76b7387d2109ccea6e"},
     {file = "blessings-1.7-py3-none-any.whl", hash = "sha256:b1fdd7e7a675295630f9ae71527a8ebc10bfefa236b3d6aa4932ee4462c17ba3"},
@@ -1106,6 +1133,10 @@ click = [
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
+]
+colorful = [
+    {file = "colorful-0.5.4-py2.py3-none-any.whl", hash = "sha256:8d264b52a39aae4c0ba3e2a46afbaec81b0559a99be0d2cfe2aba4cf94531348"},
+    {file = "colorful-0.5.4.tar.gz", hash = "sha256:86848ad4e2eda60cd2519d8698945d22f6f6551e23e95f3f14dfbb60997807ea"},
 ]
 cymem = [
     {file = "cymem-2.0.5-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:9d72d69f7a62a280199c3aa7bc550685c47d6d0689b2d299e6492253b86d2437"},
@@ -1750,18 +1781,18 @@ radon = [
     {file = "radon-5.0.1.tar.gz", hash = "sha256:9d6637fb026d63e7a3a65539976461f81a6d4e2b20c420615d0ce4cff73614a7"},
 ]
 ray = [
-    {file = "ray-1.5.1-cp36-cp36m-macosx_10_13_intel.whl", hash = "sha256:e851c78d22ec1da3a6921681adeaee4b2d09e150a135cf1694c69975eeda9643"},
-    {file = "ray-1.5.1-cp36-cp36m-manylinux2014_x86_64.whl", hash = "sha256:810acf08088e96fb9fe8ea883d6bb8a9eba10fe65284f7253c90d9fc1e4ead09"},
-    {file = "ray-1.5.1-cp36-cp36m-win_amd64.whl", hash = "sha256:38c1a3c45ac508f254f1065e6bbad2fc67813b20fda45a52512cceab2874c810"},
-    {file = "ray-1.5.1-cp37-cp37m-macosx_10_13_intel.whl", hash = "sha256:93e8316e537709253e316b608cf60b5d3fe11c25b7fd05ba5ad413ba33ba2a2a"},
-    {file = "ray-1.5.1-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:e5731425dfc46d9e9fdab3b5e2f8f58837d6d8048393e4de5f1659afd1d73c1d"},
-    {file = "ray-1.5.1-cp37-cp37m-win_amd64.whl", hash = "sha256:ce88cff4f58ce2c1cb8fd02e9f66abe11b09ebe9287987035b8940d2c1d60f37"},
-    {file = "ray-1.5.1-cp38-cp38-macosx_10_13_x86_64.whl", hash = "sha256:907aad8f3696fe3c6f3b8041d51dd779a73994b97e3d67caa8bca1c6c9ced972"},
-    {file = "ray-1.5.1-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:cc6ff47835cacc97cf131a3cb4f0d43088c6927915b78a8a9d6516533c8b2212"},
-    {file = "ray-1.5.1-cp38-cp38-win_amd64.whl", hash = "sha256:9e67b3bf67f6ad9ac732e5d508301036af1c5c40058993554e8477cbe536dc22"},
-    {file = "ray-1.5.1-cp39-cp39-macosx_10_13_x86_64.whl", hash = "sha256:06883069e51cbaf0fd1a66dbb12f2ebfa1c71ae8c4d5a8f0a79db6627f4525cf"},
-    {file = "ray-1.5.1-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:21650055dcd2bc6e37a0bf50605ee3a2f5852b33c0f7efb606271ce34ac18ea2"},
-    {file = "ray-1.5.1-cp39-cp39-win_amd64.whl", hash = "sha256:8cdf7c341f8d1f8c20fe35fd2025880801f619fee38022ea615efb1035e03826"},
+    {file = "ray-1.5.2-cp36-cp36m-macosx_10_13_intel.whl", hash = "sha256:06a668c548308df2bb8a995f707eccee054a31aa16edf946c7e8c80ea4e51a63"},
+    {file = "ray-1.5.2-cp36-cp36m-manylinux2014_x86_64.whl", hash = "sha256:ef5f5276856ecf5a59cb20b8fd6fa5c0bb6b1eab6667929a785919911f671687"},
+    {file = "ray-1.5.2-cp36-cp36m-win_amd64.whl", hash = "sha256:9399cc52e24eefe297a2e03866e2a379ca527cfeaa7ae7ac4b795622a93befe4"},
+    {file = "ray-1.5.2-cp37-cp37m-macosx_10_13_intel.whl", hash = "sha256:a08e0e01941ffffdee47487e50e35c0ebb2808306ebfa7962ffe5fcc96fcd56e"},
+    {file = "ray-1.5.2-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:899ac3353332d4bb3a08d42be12f64847aa0ec4b3a927f1d426cb0714187ecb7"},
+    {file = "ray-1.5.2-cp37-cp37m-win_amd64.whl", hash = "sha256:d4ce401d901a2f015e77822298623f79fdef22f4cbededd37dfdb78f56f165a4"},
+    {file = "ray-1.5.2-cp38-cp38-macosx_10_13_x86_64.whl", hash = "sha256:446e234879182fc711da83222989c028d7d24bd69de89f35396e8efa220eabc3"},
+    {file = "ray-1.5.2-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:ec483622475d1c5548442b8f173e6197ccdc1801f89326f7be90477b17ac0ef3"},
+    {file = "ray-1.5.2-cp38-cp38-win_amd64.whl", hash = "sha256:e4f6344c9d0dd440e3ed24bd5da50224de43560b4a99b7090c14e8bb58292660"},
+    {file = "ray-1.5.2-cp39-cp39-macosx_10_13_x86_64.whl", hash = "sha256:73825b8da1226e253e24d1a8485bc2233684d13c70b999a7230acb5a6c1897b2"},
+    {file = "ray-1.5.2-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:9e8d8578e262ff1b8cda9993bd30905dac6025e73a1d7309dd8b9e9739dad91d"},
+    {file = "ray-1.5.2-cp39-cp39-win_amd64.whl", hash = "sha256:1d663277bce5405b9e8a9d165f7fc544c6347191c89486c58dcbad66df4a435a"},
 ]
 redis = [
     {file = "redis-3.5.3-py2.py3-none-any.whl", hash = "sha256:432b788c4530cfe16d8d943a09d40ca6c16149727e4afe8c2c9d5580c59d9f24"},

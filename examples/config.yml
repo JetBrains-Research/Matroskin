@@ -1,15 +1,15 @@
 sql:
-    route_to_db: ../databases/aggregated_1k_notebooks.db
+    route_to_db: ../databases/aggregated_100k_notebooks.db
 
 ray_multiprocessing:
-    num_cpu: 6
+    num_cpu: 3
 
 data:
     route_to_notebooks: ../databases/ntbs_list.json
     route_to_scripts: ../databases/test_script.txt
-    download_scripts: True
-    download_notebooks: False
-    sample_size: 1
+    download_scripts: False
+    download_notebooks: True
+    sample_size: 100000
     seed: 1
 
 metrics:
