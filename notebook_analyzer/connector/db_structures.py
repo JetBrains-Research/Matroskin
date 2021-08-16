@@ -94,6 +94,11 @@ class NotebookFeaturesDb(base):
     coupling_between_functions = Column(Float, default=0)
     coupling_between_methods = Column(Float, default=0)
 
+    API_functions_count = Column(Integer, default=0)
+    defined_functions_count = Column(Integer, default=0)
+    API_functions_uses = Column(Integer, default=0)
+    defined_functions_uses = Column(Integer, default=0)
+
 
 def create_db(name):
     engine = create_engine(f'sqlite:///{name}', echo=True)

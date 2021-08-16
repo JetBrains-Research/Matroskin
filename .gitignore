@@ -9,7 +9,6 @@ logs/
 *.ipynb_checkpoints
 *.db
 *.json
-*.txt
 *.ipynb
 .DS_Store
 

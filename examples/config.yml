@@ -6,10 +6,10 @@ ray_multiprocessing:
 
 data:
     route_to_notebooks: ../databases/ntbs_list.json
-    route_to_scripts: ../databases/20kk_scripts.txt
+    route_to_scripts: ../databases/test_script.txt
     download_scripts: True
     download_notebooks: False
-    sample_size: 50
+    sample_size: 1
     seed: 1
 
 metrics:

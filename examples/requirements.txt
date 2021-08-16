@@ -1,0 +1,4 @@
+spacy==3.0.7
+loguru=0.5.3
+spacy-langdetect=0.1.2
+tqdm==4.62.1
