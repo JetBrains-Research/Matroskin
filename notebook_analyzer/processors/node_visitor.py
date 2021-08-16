@@ -29,7 +29,7 @@ class GetInnerUsedFunctions(ast.NodeVisitor):
         if isinstance(node.func, ast.Name):
             self.inner_functions.add(node.func.id)
             self.used_functions.append(node.func.id)
-        else:
+        elif isinstance(node.func, ast.Attribute):
             self.inner_functions.add(node.func.attr)
             self.used_functions.append(node.func.attr)
 

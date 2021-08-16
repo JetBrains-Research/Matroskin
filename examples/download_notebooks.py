@@ -7,7 +7,7 @@ from notebook_analyzer import Notebook, create_db
 from examples_utils import log_exceptions, set_nlp_model, timing
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/aggregated_1k_scripts.db')
+db_name = os.path.join(BASE_DIR, '../databases/aggregated_1k_notebooks.db')
 config = {
     'markdown': {
         'cell_language': False,
@@ -34,7 +34,7 @@ config = {
 
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=6, log_to_driver=False)
+ray.init(num_cpus=4, log_to_driver=False)
 
 
 @ray.remote
@@ -51,8 +51,8 @@ def add_notebook(name):
 
 @timing
 def main():
-    scripts_input = True
-    start, step = 100_000, 200  # 5_400_000, 1000
+    scripts_input = False
+    start, step = 150_000, 1000  # 5_400_000, 1000
 
     if not scripts_input:
         with open('../databases/ntbs_list.json', 'r') as file:

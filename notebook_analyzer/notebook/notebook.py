@@ -80,7 +80,7 @@ class Aggregator:
             )
 
         notebook_metrics['comments_density'] = notebook_metrics['comments_count'] \
-                                               / (notebook_metrics['sloc'] + notebook_metrics['comments_count'])
+                                               / max((notebook_metrics['sloc'] + notebook_metrics['comments_count']), 1)
 
         notebook_metrics['comments_per_class'] = notebook_metrics['classes_comments'] \
                                                  / max(notebook_metrics['classes'], 1)
