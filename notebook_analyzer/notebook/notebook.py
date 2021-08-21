@@ -2,6 +2,8 @@ import pandas as pd
 from sqlalchemy.orm.session import sessionmaker
 from itertools import combinations
 from typing import Tuple, Set
+import builtins
+import types
 
 from ..processors import MdProcessor
 from ..processors import CodeProcessor
@@ -119,11 +121,10 @@ class Aggregator:
         """
         Mean Coupling in cells which have methods in it
         """
+        coupling_series = self.cells_df[self.cells_df.mean_classes_coupling > 0]. \
+            mean_classes_coupling.dropna()
 
-        mean_coupling = self.cells_df[self.cells_df.mean_classes_coupling > 0]. \
-            mean_classes_coupling.dropna().mean()
-
-        mean_coupling = mean_coupling if mean_coupling == float("NaN") else 0
+        mean_coupling = coupling_series.mean() if len(coupling_series) else 0
         return mean_coupling
 
     def get_functions_statistics(self):
@@ -135,27 +136,48 @@ class Aggregator:
         Not great not terrible...
         """
 
-        defined_functions_series = self.cells_df.defined_functions. \
-            replace("", float('Nan')).dropna().apply(lambda line: line.split(' ')).explode()
-        defined_functions_set = set(defined_functions_series)
+        builtin_functions = [name for name, obj in vars(builtins).items()
+                                  if isinstance(obj, types.BuiltinFunctionType)]
+        collection_functions_names = dir(list) + dir(dict) + dir(tuple)
+
+        build_in_functions_set = set(builtin_functions + collection_functions_names)
 
         used_functions_series = self.cells_df.used_functions. \
             explode().replace('', float('Nan')).dropna()
 
-        inner_functions_series = self.cells_df.used_functions. \
-            explode().replace('', float('Nan')).dropna()
-        inner_functions_set = set(inner_functions_series)
+        defined_functions_series = self.cells_df.defined_functions. \
+            replace("", float('Nan')).dropna().apply(lambda line: line.split(' ')).explode()
+        defined_functions_set = set(defined_functions_series)
 
-        all_functions_set = defined_functions_set.union(inner_functions_set)
-        api_functions_set = all_functions_set.difference(defined_functions_set)
+        imported_entities = self.cells_df.imported_entities.explode().to_numpy()
+
+        defined_functions_used = [function for function in used_functions_series
+                                  if function in defined_functions_set]
+
+        build_in_functions_used = [function for function in used_functions_series
+                                   if function in build_in_functions_set]
+
+        api_functions_used = [
+            function['function']
+            for function in self.cells_df.functions.explode().dropna()
+            if (function['module'] in imported_entities or
+                function['function'] in imported_entities)
+        ]
+        api_functions_set = set(api_functions_used)
+
+        other_functions_used = [function for function in used_functions_series
+                                if (function not in defined_functions_set
+                                    and function not in api_functions_set
+                                    and function not in build_in_functions_set)]
 
         stats = {
             'API_functions_count': len(api_functions_set),
             'defined_functions_count': len(defined_functions_set),
-            'API_functions_uses': len([f for f in used_functions_series
-                                       if f not in defined_functions_set]),
-            'defined_functions_uses': len([f for f in used_functions_series
-                                           if f in defined_functions_set])
+            'API_functions_uses': len(api_functions_used),
+            'defined_functions_uses': len(defined_functions_used),
+            'build_in_functions_count': len(set(build_in_functions_used)),
+            'build_in_functions_uses': len(build_in_functions_used),
+            'other_functions_uses': len(other_functions_used)
         }
 
         return stats

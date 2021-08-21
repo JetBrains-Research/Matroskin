@@ -78,22 +78,33 @@ class GetImports(ast.NodeVisitor):
 class ComplexityVisitor(ast.NodeVisitor):
     def __init__(self):
         self.operation_complexity = 0
-        self.imports = []
         self.functions = []
         self.variables = set([])
         self.defined_functions = []
+        self.import_aliases = []
+
+        self.functions_and_args = []
+        self.class_definitions = []
+
+        self.imports = []
+        self.imported_entities = []
+
+        self.defined_functions = []
         self.inner_functions = []
         self.used_functions = []
-        self.import_aliases = []
 
     def visit(self, node):
         super().visit(node)
 
         functions_visitor = FunctionDefsVisitor()
         functions_visitor.visit(node)
+
         self.defined_functions = functions_visitor.defined_functions
         self.inner_functions = functions_visitor.inner_functions
-        self.used_functions += functions_visitor.used_functions
+
+        self.functions_and_args = self.get_used_functions(node)
+        self.used_functions = [f['function'] for f in self.functions_and_args]
+        self.functions = set(self.used_functions)
 
         if isinstance(node, (ast.AsyncFor, ast.While, ast.If,
                              ast.With, ast.AsyncWith)):
@@ -101,33 +112,60 @@ class ComplexityVisitor(ast.NodeVisitor):
 
         return self.operation_complexity
 
-    def visit_BinOp(self, node):
-        self.operation_complexity += operation_complexity_weight['binary_op']
-
     def visit_Assign(self, node):
         if isinstance(node.targets[0], ast.Name):
             self.variables.add(node.targets[0].id)
-        self.operation_complexity += operation_complexity_weight['assign']
 
-    def visit_Call(self, node):
-        for v in node.args:
-            if isinstance(v, ast.Name):
-                self.variables.add(v.id)
+        elif isinstance(node.targets[0], ast.Attribute):
+            self.variables.add(node.targets[0].attr)
 
-        if isinstance(node.func, (ast.Attribute, ast.Call)):
-            self.operation_complexity += operation_complexity_weight['call']
-        if isinstance(node, ast.Call):
-            self.functions.append({'function': node, 'args': node.args})
-        else:
-            self.functions.append({'function': node, 'args': node.args.args})
+        elif isinstance(node.targets[0], ast.Tuple):
+            for v in node.targets[0].elts:
+                if isinstance(v, ast.Name):
+                    self.variables.add(v.id)
+
+    def visit_ClassDef(self, node):
+        self.class_definitions.append(node.name)
+
+    def get_used_functions(self, ast_source):
+        functions = []
+        for node in ast.walk(ast_source):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    function_name = node.func.id
+                    function_args = node.args
+                    function_module = ''
+
+                elif isinstance(node.func, ast.Attribute):
+                    function_name = node.func.attr
+                    function_args = node.args
+                    if isinstance(node.func.value, ast.Name) and node.func.value.id in self.imported_entities:
+                        function_module = node.func.value.id
+                    else:
+                        function_module = ''
+                elif isinstance(node.func, ast.Call) and isinstance(node.func.func, ast.Name):
+                    function_name = node.func.func.id
+                    function_args = node.args
+                    function_module = ''
+                else:
+                    continue
+                functions.append({'function': function_name, 'args': function_args, 'module': function_module})
+
+        return functions
 
     def visit_Import(self, node):
         self.imports += [alias.name for alias in node.names]
         self.import_aliases += [alias for alias in node.names]
+        self.imported_entities += [alias.name
+                                   if not alias.asname else alias.asname
+                                   for alias in node.names]
 
     def visit_ImportFrom(self, node):
         self.imports += [f'{node.module}.{alias.name}'
                          for alias in node.names]
+        self.imported_entities += [f'{alias.name}'
+                                   for alias in node.names]
+
         self.import_aliases += [alias for alias in node.names]
 
     def get_imports(self):
@@ -164,13 +202,13 @@ class ComplexityVisitor(ast.NodeVisitor):
     @property
     def npavg(self):
         """Get average Number of Parameters per function and functions count"""
-        if not self.functions:
+        if not self.functions_and_args:
             return 0
 
         args = 0
-        for f in self.functions:
+        for f in self.functions_and_args:
             args += len(f['args'])
-        return args / len(self.functions)
+        return args / len(self.functions_and_args)
 
 
 class MethodVisitor(ast.NodeVisitor):

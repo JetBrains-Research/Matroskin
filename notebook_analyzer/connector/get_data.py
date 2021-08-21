@@ -174,7 +174,7 @@ class ScriptReader(NotebookReader):
 
     def get_script_source(self):
 
-        route = os.path.abspath('../databases/20kk_dataset') + '/'
+        route = os.path.abspath('/Users/konstantingrotov/Documents/datasets/20kk_dataset') + '/'
         path = route + self._metadata['name']
         with open(path, 'r', encoding="utf-8") as f:
             source = f.read()

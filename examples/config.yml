@@ -1,5 +1,12 @@
+#    engine: postgresql
+#    host: localhost:0000
+#    name: newdb
+#    route_to_db: postgresql://@localhost:0000/newdb
+
 sql:
-    route_to_db: ../databases/aggregated_100k_notebooks.db
+    engine: sqlite
+    host: localhost:0000
+    name: ../databases/newdb.db
 
 ray_multiprocessing:
     num_cpu: 3
@@ -9,7 +16,7 @@ data:
     route_to_scripts: ../databases/test_script.txt
     download_scripts: False
     download_notebooks: True
-    sample_size: 100000
+    sample_size: 100
     seed: 1
 
 metrics:

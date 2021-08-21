@@ -7,7 +7,7 @@ class Connector:
 
     def __init__(self, notebook_id, db_name):
         self.data = None
-        self.engine = create_engine(f"sqlite:///{db_name}")
+        self.engine = create_engine(db_name)
 
         if isinstance(notebook_id, int):
             self.data = NotebookReaderDb(notebook_id, self.engine)

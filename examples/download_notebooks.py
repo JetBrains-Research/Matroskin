@@ -14,7 +14,14 @@ with open("config.yml", "r") as yml_config:
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, cfg['sql']['route_to_db'])
+sql_config = cfg['sql']
+
+if sql_config['engine'] == 'postgresql':
+    db_name = f'{sql_config["engine"]}://@{sql_config["host"]}/{sql_config["name"]}'
+else:  # Engine = sqlite
+    abs_path_to_db = os.path.join(BASE_DIR, sql_config["name"])
+    db_name = f'{sql_config["engine"]}:////{abs_path_to_db}'
+    print(db_name)
 config = cfg['metrics']
 
 
@@ -64,7 +71,6 @@ def main():
     # # Code for not use multiprocessing
     # pbar = tqdm(ntb_list)
     # for name in pbar:
-    #     print(name)
     #     res.append(add_notebook(name))
     #     errors = len(res) - sum(res)
     #     errors_percentage = round(errors / len(ntb_list) * 100, 1)
