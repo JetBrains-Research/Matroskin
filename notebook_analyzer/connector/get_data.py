@@ -1,17 +1,16 @@
 import urllib.request
 import nbformat
 import os
-from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy.exc import OperationalError
 from abc import ABC
 
-from .db_structures import NotebookDb, CellDb, CodeCellDb, MdCellDb
+from .db_structures import NotebookDb, CellDb, CodeCellDb, MdCellDb, NotebookFeaturesDb
 
 
 class NotebookReader(ABC):
     _metadata = {}
     _cells = []
+    _features = {}
 
     @property
     def metadata(self) -> dict:
@@ -20,6 +19,10 @@ class NotebookReader(ABC):
     @property
     def cells(self) -> list:
         return self._cells
+
+    @property
+    def features(self):
+        return self._features
 
 
 class NotebookReaderAmazon(NotebookReader):
@@ -68,6 +71,7 @@ class NotebookReaderAmazon(NotebookReader):
 class NotebookReaderDb(NotebookReader):
     _metadata = {}
     _cells = []
+    _features = {}
 
     def __init__(self, notebook_id, engine):
         self.notebook_id = notebook_id
@@ -77,14 +81,19 @@ class NotebookReaderDb(NotebookReader):
         with session as conn:
             self._metadata = self.get_notebook_from_db(conn)
             self._cells = self.get_cells_from_db(conn)
+            self._features = self.get_notebook_features_from_db(conn)
 
     @property
-    def get_notebook(self):
+    def metadata(self):
         return self._metadata
 
     @property
-    def get_cells(self):
+    def cells(self):
         return self._cells
+
+    @property
+    def features(self):
+        return self._features
 
     def get_notebook_from_db(self, conn):
         ntb_row = conn.query(NotebookDb). \
@@ -128,6 +137,16 @@ class NotebookReaderDb(NotebookReader):
 
         return cells
 
+    def get_notebook_features_from_db(self, conn):
+        features_row = conn.query(NotebookFeaturesDb). \
+            where(NotebookFeaturesDb.notebook_id == self.notebook_id).first()
+
+        if not features_row:
+            raise Exception(f'There is no id = {self.notebook_id} in database')
+
+        features = self.row_to_dict(features_row)
+        return features
+
     @staticmethod
     def row_to_dict(row):
         return dict(
@@ -155,7 +174,7 @@ class ScriptReader(NotebookReader):
 
     def get_script_source(self):
 
-        route = os.path.abspath('path') + '/'
+        route = os.path.abspath('/Users/konstantingrotov/Documents/datasets/20kk_dataset') + '/'
         path = route + self._metadata['name']
         with open(path, 'r', encoding="utf-8") as f:
             source = f.read()

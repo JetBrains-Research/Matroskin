@@ -1,44 +1,39 @@
 import ray
 import os.path
 from tqdm import tqdm
+import pandas as pd
+import yaml
 
 from notebook_analyzer import Notebook
-from examples_utils import log_exceptions, set_nlp_model, timing
+from examples_utils import log_exceptions, timing
+
+
+with open("config.yml", "r") as yml_config:
+    cfg = yaml.safe_load(yml_config)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/testik_new_new.db')
+sql_config = cfg['sql']
 
-config = {
-    'markdown': {
-        'cell_language': False,
-        'sentences_count': False,
-        'unique_words': False,
-        'content': False,
-    },
-    'code': {
-        'code_instructions_count': True,
-        'code_imports': True,
-        'code_chars_count': True,
-        'metrics': True
-    }
-}
-nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
-nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=1)
+if sql_config['engine'] == 'postgresql':
+    db_name = f'{sql_config["engine"]}://@{sql_config["host"]}/{sql_config["name"]}'
+else:  # Engine = sqlite
+    abs_path_to_db = os.path.join(BASE_DIR, sql_config["name"])
+    db_name = f'{sql_config["engine"]}:///{abs_path_to_db}'
+
+ray.init(num_cpus=cfg['ray_multiprocessing']['num_cpu'], log_to_driver=False)
 
 
-# @ray.remote
+@ray.remote
 @log_exceptions
 def get_notebook(notebook_id):
     nb = Notebook(notebook_id, db_name)
-
-    return nb
+    return {'cells': nb.cells, 'metadata': nb.metadata, 'features': nb.features}
 
 
 @timing
 def main():
-    notebook_ids = [i for i in range(0, 40)]
-    multiprocessing = False
+    notebook_ids = [i for i in range(1, cfg['data']['sample_size'] + 1)]
+    multiprocessing = True
     notebooks = []
 
     if multiprocessing:
@@ -47,17 +42,17 @@ def main():
         pbar = tqdm(result_ids)
         for result_id in pbar:
             notebooks.append(ray.get(result_id))
-            # TODO TypeError: cannot pickle
-            #  'sqlalchemy.cprocessors.UnicodeResultProcessor' object
-            #  P.S error after 'return nb'
+
     else:
         pbar = tqdm(notebook_ids)
         for idx in pbar:
             notebooks.append(get_notebook(idx))
 
-    notebooks = [notebook for notebook in notebooks if notebook]
-    for notebook in notebooks:
-        print(notebook.cells)
+    notebooks_features = [notebook['features'] for notebook in notebooks if notebook]
+    notebooks_cells = [notebook['cells'] for notebook in notebooks if notebook]
+    notebook_metadata = [notebook['metadata'] for notebook in notebooks if notebook]
+
+    print(pd.DataFrame(notebooks_features).sloc.head(15))
 
 
 if __name__ == '__main__':

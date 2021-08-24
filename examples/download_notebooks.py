@@ -2,31 +2,32 @@ import json
 import ray
 import os.path
 from tqdm import tqdm
+import random
+import yaml
 
 from notebook_analyzer import Notebook, create_db
 from examples_utils import log_exceptions, set_nlp_model, timing
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_name = os.path.join(BASE_DIR, '../databases/testik_new.db')
 
-config = {
-    'markdown': {
-        'cell_language': False,
-        'sentences_count': False,
-        'unique_words': False,
-        'content': False,
-    },
-    'code': {
-        'code_instructions_count': True,
-        'code_imports': True,
-        'code_chars_count': True,
-        'metrics': True
-    }
-}
+with open("config.yml", "r") as yml_config:
+    cfg = yaml.safe_load(yml_config)
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sql_config = cfg['sql']
+
+if sql_config['engine'] == 'postgresql':
+    db_name = f'{sql_config["engine"]}://@{sql_config["host"]}/{sql_config["name"]}'
+else:  # Engine = sqlite
+    abs_path_to_db = os.path.join(BASE_DIR, sql_config["name"])
+    db_name = f'{sql_config["engine"]}:////{abs_path_to_db}'
+    print(db_name)
+config = cfg['metrics']
+
 
 nlp_functions = {'cell_language', 'sentences_count', 'unique_words'}
 nlp = set_nlp_model() if sum([config['markdown'][f] for f in nlp_functions]) else None
-ray.init(num_cpus=6)
+ray.init(num_cpus=cfg['ray_multiprocessing']['num_cpu'], log_to_driver=False)
 
 
 @ray.remote
@@ -36,20 +37,25 @@ def add_notebook(name):
     success = nb.add_nlp_model(nlp)
     log = nb.run_tasks(config)
     rows = nb.write_to_db()
+    features = nb.aggregate_tasks(config)
+
     return rows
 
 
 @timing
 def main():
-    scripts_input = True
-    start, step = 0, 100
+    ntb_list = []
+    random.seed(cfg['data']['seed'])
 
-    if not scripts_input:
-        with open('../databases/ntbs_list.json', 'r') as file:
-            ntb_list = json.load(file)[start:start+step]
-    else:
-        with open('../databases/20kk_scripts.txt', 'r') as file:
-            ntb_list = file.read().split('\n')[start:start+step]
+    if cfg['data']['download_notebooks']:
+        with open(cfg['data']['route_to_notebooks'], 'r') as file:
+            full_ntb_list = json.load(file)
+            ntb_list += random.sample(full_ntb_list, cfg['data']['sample_size'])
+
+    if cfg['data']['download_scripts']:
+        with open(cfg['data']['route_to_scripts'], 'r') as file:
+            full_script_list = file.read().splitlines()
+            ntb_list += random.sample(full_script_list, cfg['data']['sample_size'])
 
     create_db(db_name)
     res = []
@@ -58,13 +64,19 @@ def main():
     pbar = tqdm(result_ids)
     for result_id in pbar:
         res.append(ray.get(result_id))
-        pbar.set_postfix(errors=f'{(len(res) - sum(res))} ({(len(res) - sum(res)) / len(result_ids) * 100}%)')
+        errors = len(res) - sum(res)
+        errors_percentage = round(errors / len(result_ids) * 100, 1)
+        pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')
+
+    # # Code for not use multiprocessing
+    # pbar = tqdm(ntb_list)
+    # for name in pbar:
+    #     res.append(add_notebook(name))
+    #     errors = len(res) - sum(res)
+    #     errors_percentage = round(errors / len(ntb_list) * 100, 1)
+    #     pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')
 
     print('Finishing...')
-    print('{} notebooks contain errors ({:.1f}%) '.format(
-        len(res) - sum(res),
-        (len(res) - sum(res)) / len(res) * 100
-    ))
 
 
 if __name__ == '__main__':

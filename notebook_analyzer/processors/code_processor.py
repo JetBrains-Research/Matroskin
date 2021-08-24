@@ -67,6 +67,7 @@ class CodeProcessor(CellProcessor):
         return " ".join(complexity_visitor.get_imports())
 
     def get_oop_metrics(self):
+        non_public_methods_count = self.oop_visitor.get_non_public_methods_count()
         classes_parameters = self.oop_visitor.get_classes_parameters()
 
         new_methods_count = 0
@@ -78,7 +79,10 @@ class CodeProcessor(CellProcessor):
         oop_metrics = {
             'new_methods_count': new_methods_count,
             'override_methods_count': override_methods_count,
-            'classes_size': self.oop_visitor.classes_size
+            'private_methods_count': non_public_methods_count['private_methods_count'],
+            'protected_methods_count': non_public_methods_count['protected_methods_count'],
+            'classes_size': self.oop_visitor.classes_size,
+            'mean_classes_coupling': self.oop_visitor.get_mean_methods_coupling()
         }
         return oop_metrics
 
@@ -88,7 +92,14 @@ class CodeProcessor(CellProcessor):
             'halstead': self.complexity_visitor.get_halstead_complexity(self.refactored_cell_ast),
             'operation_complexity': self.complexity_visitor.operation_complexity,
             'npavg': self.complexity_visitor.npavg,
-            'functions_count': len(self.complexity_visitor.functions)
+            'functions_count': len(self.complexity_visitor.functions),
+            'variables': " ".join(list(self.complexity_visitor.variables)),
+            'defined_functions': " ".join(list(self.complexity_visitor.defined_functions)),
+            'inner_functions': self.complexity_visitor.inner_functions,
+            'used_functions': self.complexity_visitor.used_functions,
+            'imported_entities': self.complexity_visitor.imported_entities,
+            'functions': self.complexity_visitor.functions_and_args,
+            'unused_imports_count': 0  # len(self.complexity_visitor.get_unused_imports(self.cell['ast']))
         }
         return complexity_metrics
 
@@ -98,6 +109,7 @@ class CodeProcessor(CellProcessor):
             res = analyze(cell_source)
             radon_metrics['sloc'] = res.sloc
             radon_metrics['comments_count'] = res.comments + res.multi
+            radon_metrics['blank_lines_count'] = res.blank
             return radon_metrics
         except SyntaxError:
             return radon_metrics
