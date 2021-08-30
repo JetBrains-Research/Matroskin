@@ -16,10 +16,15 @@ class LogFilter:
 
 
 def log_exceptions(func):
-
     def function_wrapper(*args, **kwargs):
         try:
+            if args[1] % 50_000 == 0:
+                log_work = LogFilter("INFO")
+                fmt = "{time:X}\t{name}\t{level}\t{message}"
+                logger.add("../logs/log.log", filter=log_work, level=0, format=fmt)
+                logger.info(f'Processed:\t{args[1]}')
             return func(*args, **kwargs)
+
         except Exception as e:
             log_filter = LogFilter("WARNING")
             fmt = "{time:X}\t{name}\t{level}\t{message}"

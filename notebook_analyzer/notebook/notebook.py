@@ -137,7 +137,7 @@ class Aggregator:
         """
 
         builtin_functions = [name for name, obj in vars(builtins).items()
-                                  if isinstance(obj, types.BuiltinFunctionType)]
+                             if isinstance(obj, types.BuiltinFunctionType)]
         collection_functions_names = dir(list) + dir(dict) + dir(tuple)
 
         build_in_functions_set = set(builtin_functions + collection_functions_names)
@@ -169,6 +169,10 @@ class Aggregator:
                                 if (function not in defined_functions_set
                                     and function not in api_functions_set
                                     and function not in build_in_functions_set)]
+
+        # if len(api_functions_used) == 2:
+        #     print(api_functions_used)
+        #     print(self.cells_df.source.to_numpy()[0])
 
         stats = {
             'API_functions_count': len(api_functions_set),
@@ -244,11 +248,13 @@ class Notebook(object):
         return self.cells
 
     def aggregate_tasks(self, config):
-        session = sessionmaker(bind=self.engine)()
         flatten_cells = [flatten(cell) for cell in self.cells]
         self.features = self.aggregator.run_tasks(flatten_cells, config['notebook'])
 
-        with session as conn:
-            flatten_features = write_features_to_db(conn, self.metadata, self.features)
+        if self.engine:
+            session = sessionmaker(bind=self.engine)()
+            with session as conn:
+                flatten_features = write_features_to_db(conn, self.metadata, self.features)
+                return flatten_features
 
-        return flatten_features
+        return self.features

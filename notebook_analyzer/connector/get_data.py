@@ -173,9 +173,9 @@ class ScriptReader(NotebookReader):
         return self._cells
 
     def get_script_source(self):
-
-        route = os.path.abspath('/Users/konstantingrotov/Documents/datasets/20kk_dataset') + '/'
-        path = route + self._metadata['name']
+        #route = os.path.abspath('/home/ubuntu/jupyter-corpus/jpt-nb-corpus/ databases/20kk_dataset') + '/'
+        path = os.path.abspath(self._metadata['name'])
+        # path = route + self._metadata['name']
         with open(path, 'r', encoding="utf-8") as f:
             source = f.read()
         if len(source) > 20_000:

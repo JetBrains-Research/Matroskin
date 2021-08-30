@@ -62,7 +62,6 @@ class GetImports(ast.NodeVisitor):
 
     def visit(self, node):
         super().visit(node)
-
         return self.imports
 
     def visit_Import(self, node):
@@ -120,36 +119,36 @@ class ComplexityVisitor(ast.NodeVisitor):
             self.variables.add(node.targets[0].attr)
 
         elif isinstance(node.targets[0], ast.Tuple):
-            for v in node.targets[0].elts:
-                if isinstance(v, ast.Name):
-                    self.variables.add(v.id)
+            for var in filter(lambda v: isinstance(v, ast.Name), node.targets[0].elts):
+                self.variables.add(var.id)
 
     def visit_ClassDef(self, node):
         self.class_definitions.append(node.name)
 
     def get_used_functions(self, ast_source):
         functions = []
-        for node in ast.walk(ast_source):
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name):
-                    function_name = node.func.id
-                    function_args = node.args
-                    function_module = ''
+        for node in filter(lambda nd: isinstance(nd, ast.Call), ast.walk(ast_source)):
+            if isinstance(node.func, ast.Name):
+                function_name = node.func.id
+                function_args = node.args
+                function_module = ''
 
-                elif isinstance(node.func, ast.Attribute):
-                    function_name = node.func.attr
-                    function_args = node.args
-                    if isinstance(node.func.value, ast.Name) and node.func.value.id in self.imported_entities:
-                        function_module = node.func.value.id
-                    else:
-                        function_module = ''
-                elif isinstance(node.func, ast.Call) and isinstance(node.func.func, ast.Name):
-                    function_name = node.func.func.id
-                    function_args = node.args
-                    function_module = ''
+            elif isinstance(node.func, ast.Attribute):
+                function_name = node.func.attr
+                function_args = node.args
+                if isinstance(node.func.value, ast.Name) \
+                        and node.func.value.id in self.imported_entities:
+                    function_module = node.func.value.id
                 else:
-                    continue
-                functions.append({'function': function_name, 'args': function_args, 'module': function_module})
+                    function_module = ''
+            elif isinstance(node.func, ast.Call) \
+                    and isinstance(node.func.func, ast.Name):
+                function_name = node.func.func.id
+                function_args = node.args
+                function_module = ''
+            else:
+                continue
+            functions.append({'function': function_name, 'args': function_args, 'module': function_module})
 
         return functions
 
