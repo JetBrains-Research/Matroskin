@@ -6,6 +6,27 @@ with open("config.yml", "r") as yml_config:
     config = cfg['metrics']
 
 
+def preprocessed_test_metrics(expected_metrics):
+    """function that creates a single file with metrics
+    that need to be tested in different files
+
+    In:
+    expected_metrics:
+        List[ Tuple[FileName, Dict[Metric1: Value1, Metric2: Value2, ...], ...] ]
+
+    Out:
+    res:
+        List[ Tuple[FileName, Metric1, Value1], ... ]
+
+    """
+
+    res = []
+    for a, b in expected_metrics:
+        for c, d in b.items():
+            res.append((a, c, d))
+    return res
+
+
 def flatten(dictionary):
     output = dict()
     for key, value in dictionary.items():

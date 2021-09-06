@@ -1,5 +1,5 @@
 import pytest
-from test_utils import get_aggregated_metrics
+from test_utils import get_aggregated_metrics, preprocessed_test_metrics
 
 #
 # Aggregated metrics
@@ -72,10 +72,7 @@ expected_metrics = [
     (functions_test, metrics_functions_test),
     (f, metrics)
 ]
-res = []
-for a, b in expected_metrics:
-    for c, d in b.items():
-        res.append((a, c, d))
+res = preprocessed_test_metrics(expected_metrics)
 
 
 @pytest.mark.parametrize('filename, metric_name, expected_metric_value', res)
