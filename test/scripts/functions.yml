@@ -1,0 +1,13 @@
+python_file_type: script
+
+metrics:
+  'code_cells_count': 1
+  'md_cells_count': 0
+  'sloc': 15
+  'comments_count': 3
+  'comments_density': 0.16666666666666666
+  'API_functions_count': 6
+  'defined_functions_count': 3
+  'API_functions_uses': 8
+  'defined_functions_uses': 0
+  'coupling_between_functions': 2

@@ -13,7 +13,7 @@ ray_multiprocessing:
 
 data:
     route_to_notebooks: ../databases/ntbs_list.json
-    route_to_scripts: /test_scripts/test_script.py
+    route_to_scripts: /scripts/script.py
     download_scripts: True
     download_notebooks: False
     sample_size: 10

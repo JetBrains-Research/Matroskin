@@ -1,9 +1,24 @@
-from notebook_analyzer import Notebook
+import os
 import yaml
+from notebook_analyzer import Notebook
 
-with open("config.yml", "r") as yml_config:
-    cfg = yaml.safe_load(yml_config)
-    config = cfg['metrics']
+
+def read_expected_results(directory=None):
+    files = os.listdir(directory)
+    expected_metrics = []
+    for file in files:
+        filename, file_extension = os.path.splitext(file)
+
+        if file_extension == '.yml':
+            with open(f'{directory}{file}', "r") as yml_config:
+                cfg = yaml.safe_load(yml_config)
+                metrics_config = cfg['metrics']
+                python_file_type = '.py' if cfg['python_file_type'] == 'script' else '.ipynb'
+
+            filename = filename if not directory else directory + filename
+            expected_metrics.append((filename + python_file_type, metrics_config))
+
+    return expected_metrics
 
 
 def preprocessed_test_metrics(expected_metrics):
@@ -27,6 +42,12 @@ def preprocessed_test_metrics(expected_metrics):
     return res
 
 
+def get_expected_metrics(directory):
+    raw_metrics = read_expected_results(directory)
+    preprocessed_metrics = preprocessed_test_metrics(raw_metrics)
+    return preprocessed_metrics
+
+
 def flatten(dictionary):
     output = dict()
     for key, value in dictionary.items():
@@ -38,14 +59,14 @@ def flatten(dictionary):
     return output
 
 
-def get_aggregated_metrics(filename):
+def get_aggregated_metrics(filename, config):
     nb = Notebook(filename)
     log = nb.run_tasks(config)
     features = nb.aggregate_tasks(config)
     return flatten(features)
 
 
-def get_cells(filename):
+def get_cells(filename, config):
     nb = Notebook(filename)
     log = nb.run_tasks(config)
     return nb.cells
