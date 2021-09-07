@@ -68,8 +68,18 @@ metrics_functions_test = {
     'coupling_between_functions': 2
 }
 
+functions_test_notebook = 'test_notebooks/test_functions.ipynb'
+metrics_functions_test_notebook = {
+    'code_cells_count': 3,
+    'defined_functions_count': 3,
+    'defined_functions_uses': 3,
+    'notebook_cells_number': 4
+
+}
+
 expected_metrics = [
     (functions_test, metrics_functions_test),
+    (functions_test_notebook, metrics_functions_test_notebook),
     (f, metrics)
 ]
 res = preprocessed_test_metrics(expected_metrics)
