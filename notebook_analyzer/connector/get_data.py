@@ -32,7 +32,7 @@ class NotebookReaderAmazon(NotebookReader):
 
     def __init__(self, name):
         self._metadata['name'] = name
-        notebook_string = self.download_notebook_amazon()
+        notebook_string = self.download_notebook()
         notebook = nbformat.reads(notebook_string, 4)
 
         self._metadata['language'], self._metadata['version'] = self.get_kernel(notebook)
@@ -46,19 +46,21 @@ class NotebookReaderAmazon(NotebookReader):
     def cells(self):
         return self._cells
 
+    def download_notebook(self):
+        try:
+            notebook_string = self.download_notebook_amazon()
+
+        except urllib.error.URLError:
+            notebook_string = self.download_notebook_file()
+
+        return notebook_string
+
     def download_notebook_amazon(self):
         host = 'http://github-notebooks-update1.s3-eu-west-1.amazonaws.com/'
         link = host + self._metadata['name']
 
-        # with urllib.request.urlopen(link) as url:
-        #     notebook_string = url.read().decode()
-
-        try:
-            with urllib.request.urlopen(link) as url:
-                notebook_string = url.read().decode()
-
-        except urllib.error.URLError:
-            notebook_string = self.download_notebook_file()
+        with urllib.request.urlopen(link) as url:
+            notebook_string = url.read().decode()
 
         return notebook_string
 

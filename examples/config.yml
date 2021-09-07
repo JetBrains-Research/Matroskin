@@ -14,8 +14,8 @@ ray_multiprocessing:
 data:
     route_to_notebooks: ../databases/ntbs_list.json
     route_to_scripts: ../databases/20kk_scripts_abs.txt
-    download_scripts: True
-    download_notebooks: False
+    download_scripts: False
+    download_notebooks: True
     sample_size: 100
     seed: 8
 

@@ -19,7 +19,7 @@ def test_complexity_metrics(expected_result):
 
     filename, metric_name, expected_metric_value = expected_result
     aggregated_metrics = get_aggregated_metrics(filename, config)
-    
+
     print(f'{filename}\t{metric_name}')
     assert aggregated_metrics[metric_name] == expected_metric_value
 
