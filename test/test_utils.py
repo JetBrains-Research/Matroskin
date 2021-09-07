@@ -71,3 +71,34 @@ def get_cells(filename, config):
     log = nb.run_tasks(config)
     return nb.cells
 
+
+def get_metrics():
+    """
+    A function that collects predicted and calculated
+    metrics into a single array
+    """
+
+    with open('testing_config.yml', "r") as yml_testing_config:
+        testing_cfg = yaml.safe_load(yml_testing_config)
+        directories = testing_cfg['directories']
+
+    with open('metrics_config.yml', "r") as yml_config:
+        metrics_cfg = yaml.safe_load(yml_config)
+        config = metrics_cfg['metrics']
+
+    expected_metrics_list = []
+    for directory in directories:
+        expected_metrics_list += get_expected_metrics(directory)
+
+    metrics = []
+    unique_filenames = set([filename for filename, _, _ in expected_metrics_list])
+
+    for filename in unique_filenames:
+        aggregated_metrics = get_aggregated_metrics(filename, config)
+        for expected_metrics in expected_metrics_list:
+            if expected_metrics[0] == filename:
+                metrics.append((expected_metrics, aggregated_metrics))
+
+    return metrics
+
+
