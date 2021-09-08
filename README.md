@@ -8,6 +8,13 @@ Library examples located in [examples folder](examples/). There are 2 examples: 
 To start using library you should install .whl file using pip:
 `pip install filename.whl`
 
+In root folder create folder databases. Download in root folder json list of jupyter notebooks names using next command:
+`wget "https://github-notebooks-samples.s3-eu-west-1.amazonaws.com/ntbs_list.json"`
+
+To change database in which will download processed notebooks go to `examples/config.yml` and change sql parameters; If you're using sqlite just change name of database. 
+To change multiprocessing parameters go to `examples/config.yml` and change `ray_multiprocessing` parameters.
+
+After that you can get processed notebooks using `examples/download_notebooks.py` file or get processed data from local database using `examples/get_notebooks.py` file.
 ## Available metrics
 ...
 ...
