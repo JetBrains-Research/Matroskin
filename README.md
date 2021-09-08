@@ -6,15 +6,22 @@ You can configure your own local database, change multiprocessing settings, samp
 Library examples located in [examples folder](examples/). There are 2 examples: download notebooks or scripts to local database and getting notebooks with processed metrics from local database.
 
 To start using library you should install .whl file using pip:
-`pip install filename.whl`
+`pip install filename.whl` or build it using `poetry build`.
 
-In root folder create folder databases. Download in root folder json list of jupyter notebooks names using next command:
+Before using examples install requirements from `examples/requirements.txt` file.
+
+In root folder create folders `databases` and `logs`. Download in root folder json list of jupyter notebooks names using next command:
 `wget "https://github-notebooks-samples.s3-eu-west-1.amazonaws.com/ntbs_list.json"`
 
 To change database in which will download processed notebooks go to `examples/config.yml` and change sql parameters; If you're using sqlite just change name of database. 
 To change multiprocessing parameters go to `examples/config.yml` and change `ray_multiprocessing` parameters.
 
 After that you can get processed notebooks using `examples/download_notebooks.py` file or get processed data from local database using `examples/get_notebooks.py` file.
+
+[comment]: <> (## Getting notebooks)
+
+[comment]: <> (File `examples/download_notebooks.py` is example of getting jupyter notebooks from amazon dataset, processing it and saving in local database. )
+
 ## Available metrics
 ...
 ...
