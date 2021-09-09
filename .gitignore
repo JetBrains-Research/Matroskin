@@ -11,4 +11,4 @@ logs/
 *.db
 *.json
 .DS_Store
-
+venv
