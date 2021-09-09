@@ -37,7 +37,8 @@ def add_notebook(name, idx):
     success = nb.add_nlp_model(nlp)
     log = nb.run_tasks(config)
     rows = nb.write_to_db()
-    features = nb.aggregate_tasks(config)
+    log = nb.aggregate_tasks(config)
+    features = nb.write_aggregated_to_db()
 
     return rows
 
@@ -61,10 +62,11 @@ def main():
     res = []
     result_ids = [add_notebook.remote(name, idx) for idx, name in enumerate(ntb_list)]
 
-    if len(result_ids) < 50_000:
+    if len(result_ids) < cfg['data']['pbar_using_limit']:
         pbar = tqdm(result_ids)
         for result_id in pbar:
             res.append(ray.get(result_id))
+
             errors = len(res) - sum(res)
             errors_percentage = round(errors / len(result_ids) * 100, 1)
             pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')

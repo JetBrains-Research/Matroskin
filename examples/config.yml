@@ -19,6 +19,8 @@ data:
     sample_size: 100
     seed: 8
 
+    pbar_using_limit: 1000
+
 metrics:
     'markdown':
       'cell_language': False
