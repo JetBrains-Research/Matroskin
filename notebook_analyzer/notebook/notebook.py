@@ -239,6 +239,13 @@ class Notebook(object):
 
         return 1
 
+    def write_aggregated_to_db(self):
+        session = sessionmaker(bind=self.engine)()
+        with session as conn:
+            flatten_features = write_features_to_db(conn, self.metadata, self.features)
+
+        return flatten_features
+
     def run_tasks(self, config):
         for i, cell in enumerate(self.cells):
             self.cells[i] = self.processors[0](cell).process_cell(config['code']) \
@@ -251,10 +258,10 @@ class Notebook(object):
         flatten_cells = [flatten(cell) for cell in self.cells]
         self.features = self.aggregator.run_tasks(flatten_cells, config['notebook'])
 
-        if self.engine:
-            session = sessionmaker(bind=self.engine)()
-            with session as conn:
-                flatten_features = write_features_to_db(conn, self.metadata, self.features)
-                return flatten_features
+        # if self.engine:
+        #     session = sessionmaker(bind=self.engine)()
+        #     with session as conn:
+        #         flatten_features = write_features_to_db(conn, self.metadata, self.features)
+        #         return flatten_features
 
         return self.features

@@ -20,15 +20,17 @@ def log_exceptions(func):
         try:
             if args[1] % 50_000 == 0:
                 log_work = LogFilter("INFO")
-                fmt = "{time:X}\t{name}\t{level}\t{message}"
-                logger.add("../logs/log.log", filter=log_work, level=0, format=fmt)
+                fmt = "{time:YYYY-MM-DD}\t{time:X}\t{name}\t{level}\t{message}"
+                logger.add("../logs/log.log", filter=log_work, level=0, format=fmt,
+                           rotation="10 MB", compression='zip')
                 logger.info(f'Processed:\t{args[1]}')
             return func(*args, **kwargs)
 
         except Exception as e:
             log_filter = LogFilter("WARNING")
-            fmt = "{time:X}\t{name}\t{level}\t{message}"
-            logger.add("../logs/log.log", filter=log_filter, level=0, format=fmt)
+            fmt = "{time:YYYY-MM-DD}\t{time:X}\t{name}\t{level}\t{message}"
+            logger.add("../logs/log.log", filter=log_filter, level=0, format=fmt,
+                       rotation="10 MB", compression='zip')
             logger.error(f'{args[0]}\t{type(e).__name__}\t{e}')
             return 0
 
