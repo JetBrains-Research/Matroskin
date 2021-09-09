@@ -72,7 +72,7 @@ def main():
             pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')
     else:
         for result_id in result_ids:
-            res.append(ray.get(result_id))
+            continue
 
     # # Code for not use multiprocessing
     # pbar = tqdm(ntb_list)

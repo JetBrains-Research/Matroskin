@@ -1,0 +1,7 @@
+python_file_type: notebook
+
+metrics:
+  'code_cells_count': 3
+  'defined_functions_count': 3
+  'defined_functions_uses': 3
+  'notebook_cells_number': 4
