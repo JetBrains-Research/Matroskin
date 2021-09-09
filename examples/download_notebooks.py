@@ -32,12 +32,13 @@ ray.init(num_cpus=cfg['ray_multiprocessing']['num_cpu'], log_to_driver=False)
 
 @ray.remote
 @log_exceptions
-def add_notebook(name):
+def add_notebook(name, idx):
     nb = Notebook(name, db_name)
     success = nb.add_nlp_model(nlp)
     log = nb.run_tasks(config)
     rows = nb.write_to_db()
-    features = nb.aggregate_tasks(config)
+    log = nb.aggregate_tasks(config)
+    features = nb.write_aggregated_to_db()
 
     return rows
 
@@ -59,19 +60,24 @@ def main():
 
     create_db(db_name)
     res = []
-    result_ids = [add_notebook.remote(name) for name in ntb_list]
+    result_ids = [add_notebook.remote(name, idx) for idx, name in enumerate(ntb_list)]
 
-    pbar = tqdm(result_ids)
-    for result_id in pbar:
-        res.append(ray.get(result_id))
-        errors = len(res) - sum(res)
-        errors_percentage = round(errors / len(result_ids) * 100, 1)
-        pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')
+    if len(result_ids) < cfg['data']['pbar_using_limit']:
+        pbar = tqdm(result_ids)
+        for result_id in pbar:
+            res.append(ray.get(result_id))
+
+            errors = len(res) - sum(res)
+            errors_percentage = round(errors / len(result_ids) * 100, 1)
+            pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')
+    else:
+        for result_id in result_ids:
+            continue
 
     # # Code for not use multiprocessing
     # pbar = tqdm(ntb_list)
-    # for name in pbar:
-    #     res.append(add_notebook(name))
+    # for idx, name in enumerate(pbar):
+    #     res.append(add_notebook(name, idx))
     #     errors = len(res) - sum(res)
     #     errors_percentage = round(errors / len(ntb_list) * 100, 1)
     #     pbar.set_postfix(errors=f'{errors} ({errors_percentage}%)')

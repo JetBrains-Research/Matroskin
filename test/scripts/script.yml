@@ -1,0 +1,17 @@
+python_file_type: script
+
+metrics:
+  'code_cells_count': 1
+  'md_cells_count': 0
+  'blank_lines_count': 20
+  'classes': 1
+  'classes_comments': 22
+  'mean_new_methods': 8
+  'mean_attributes_count': 4
+  'coupling_between_functions': 5
+  'coupling_between_methods': 1
+  'defined_functions_count': 10
+  'API_functions_count': 9
+  'API_functions_uses': 16
+  'defined_functions_uses': 20
+  'other_functions_uses': 2
