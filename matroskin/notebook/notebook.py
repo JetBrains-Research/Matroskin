@@ -50,6 +50,7 @@ class Aggregator:
             'unused_imports_total': int(df.unused_imports_count.dropna().sum()),
             'sloc': int(df.sloc.sum()),
             'comments_count': max(int(df.comments_count.sum()), 0),
+            'extended_comments_count': max(int(df.comments_count.sum()), 0),
             'blank_lines_count': max(int(df.blank_lines_count.sum()), 0),
             'classes': int(
                 df[df.classes_size > 0]. \
@@ -76,7 +77,7 @@ class Aggregator:
         count_markdown = True
         if count_markdown:
             default_length = 1
-            notebook_metrics['comments_count'] += int(
+            notebook_metrics['extended_comments_count'] += int(
                 df[df.type == 'markdown']. \
                 source. \
                 apply(lambda lines: lines.count('\n') + default_length).sum()
@@ -85,6 +86,8 @@ class Aggregator:
         notebook_metrics['comments_density'] = notebook_metrics['comments_count'] \
                                                / max((notebook_metrics['sloc'] + notebook_metrics['comments_count']), 1)
 
+        notebook_metrics['extended_comments_density'] = notebook_metrics['extended_comments_count'] \
+                                                               / max((notebook_metrics['sloc'] + notebook_metrics['comments_count']), 1)
         notebook_metrics['comments_per_class'] = notebook_metrics['classes_comments'] \
                                                  / max(notebook_metrics['classes'], 1)
 
@@ -132,8 +135,6 @@ class Aggregator:
         cells_df.defined_functions: Series[ String['fun_1 fun_2 ... fun_n'] ]
         cells_df.used_functions: Series[ List[ String, ... , String ] ]
         cells_df.inner_functions: Series[ List[ Set, ... , Set ] ]
-
-        Not great not terrible...
         """
 
         builtin_functions = [name for name, obj in vars(builtins).items()
@@ -170,10 +171,6 @@ class Aggregator:
                                     and function not in api_functions_set
                                     and function not in build_in_functions_set)]
 
-        # if len(api_functions_used) == 2:
-        #     print(api_functions_used)
-        #     print(self.cells_df.source.to_numpy()[0])
-
         stats = {
             'API_functions_count': len(api_functions_set),
             'defined_functions_count': len(defined_functions_set),
@@ -191,7 +188,10 @@ class Aggregator:
         notebook_metrics = {}
 
         for metric in cells_metrics:
-            notebook_metrics[metric] = self.cells_df[metric].mean()
+            if metric == 'ccn':
+                notebook_metrics[metric] = int(self.cells_df[metric].max())
+            else:
+                notebook_metrics[metric] = self.cells_df[metric].mean()
 
         return notebook_metrics
 
@@ -239,13 +239,6 @@ class Notebook(object):
 
         return 1
 
-    def write_aggregated_to_db(self):
-        session = sessionmaker(bind=self.engine)()
-        with session as conn:
-            flatten_features = write_features_to_db(conn, self.metadata, self.features)
-
-        return flatten_features
-
     def run_tasks(self, config):
         for i, cell in enumerate(self.cells):
             self.cells[i] = self.processors[0](cell).process_cell(config['code']) \
@@ -258,10 +251,9 @@ class Notebook(object):
         flatten_cells = [flatten(cell) for cell in self.cells]
         self.features = self.aggregator.run_tasks(flatten_cells, config['notebook'])
 
-        # if self.engine:
-        #     session = sessionmaker(bind=self.engine)()
-        #     with session as conn:
-        #         flatten_features = write_features_to_db(conn, self.metadata, self.features)
-        #         return flatten_features
+        if self.engine:
+            session = sessionmaker(bind=self.engine)()
+            with session as conn:
+                flatten_features = write_features_to_db(conn, self.metadata, self.features)
 
         return self.features

@@ -9,7 +9,7 @@ def get_ast(cell_source):
     try:
         code_ast = ast.parse(cell_source)
         return code_ast
-    except SyntaxError as e:  # TODO: reconsider a way for handling magic functions
+    except SyntaxError as e:
         code_string = cell_source.splitlines()
         del code_string[e.lineno - 1]
         code_string = '\n'.join(code_string)

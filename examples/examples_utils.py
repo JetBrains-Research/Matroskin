@@ -1,8 +1,10 @@
 import time
-import spacy
-from spacy_langdetect import LanguageDetector
-from spacy.language import Language
+import os
+import yaml
 from loguru import logger
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class LogFilter:
@@ -18,20 +20,19 @@ class LogFilter:
 def log_exceptions(func):
     def function_wrapper(*args, **kwargs):
         try:
-            if args[1] % 50_000 == 0:
+            if args[1] % 10_000 == 0:
                 log_work = LogFilter("INFO")
-                fmt = "{time:YYYY-MM-DD}\t{time:X}\t{name}\t{level}\t{message}"
-                logger.add("../logs/log.log", filter=log_work, level=0, format=fmt,
-                           rotation="10 MB", compression='zip')
+                fmt = "{time:X}\t{name}\t{level}\t{message}"
+                logger.add("../logs/log.log", filter=log_work, level=0, format=fmt)
                 logger.info(f'Processed:\t{args[1]}')
             return func(*args, **kwargs)
 
         except Exception as e:
-            log_filter = LogFilter("WARNING")
-            fmt = "{time:YYYY-MM-DD}\t{time:X}\t{name}\t{level}\t{message}"
-            logger.add("../logs/log.log", filter=log_filter, level=0, format=fmt,
-                       rotation="10 MB", compression='zip')
-            logger.error(f'{args[0]}\t{type(e).__name__}\t{e}')
+            if type(e).__name__ != 'AttributeError':
+                log_filter = LogFilter("WARNING")
+                fmt = "{time:}\t{name}\t{level}\t{message}"
+                logger.add("../logs/log.log", filter=log_filter, level=0, format=fmt)
+                logger.error(f'{args[0]}\t{type(e).__name__}\t{e}')
             return 0
 
     return function_wrapper
@@ -46,15 +47,19 @@ def timing(func):
     return function_wrapper
 
 
-@Language.factory('language_detector')
-def language_detector(nlp, name):
-    return LanguageDetector()
+def get_config(filename):
+    with open(filename, "r") as yml_config:
+        cfg = yaml.safe_load(yml_config)
+        return cfg
 
 
-def set_nlp_model():
-    nlp = spacy.load('en_core_web_sm')
-    nlp.max_length = 2000000
-    nlp.add_pipe('language_detector', last=True)
-    return nlp
+def get_db_name(sql_config):
+    if sql_config['engine'] == 'postgresql':
+        db_name = f'{sql_config["engine"]}:{sql_config["pg_name"]}:{sql_config["password"]}//@{sql_config["host"]}/{sql_config["name"]}'
 
-    return None
+    else:  # Engine = sqlite
+        abs_path_to_db = os.path.join(BASE_DIR, sql_config["name"])
+        db_name = f'{sql_config["engine"]}:////{abs_path_to_db}'
+
+    print(f'Database name is {db_name}')
+    return db_name

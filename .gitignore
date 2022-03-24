@@ -2,13 +2,12 @@ __pycache__/
 flask/
 databases/
 /notebooks/
-dist/
 old/
 logs/
 *.idea
 *.ipynb_checkpoints
 *.pytest_cache
-*.db
-*.json
 .DS_Store
 venv
+#*.db
+#*.json

@@ -2,32 +2,38 @@ import ray
 import os.path
 from tqdm import tqdm
 import pandas as pd
-import yaml
 
-from notebook_analyzer import Notebook
-from examples_utils import log_exceptions, timing
+from matroskin import Notebook
+from examples_utils import log_exceptions, get_config, get_db_name, timing
 
 
-with open("config.yml", "r") as yml_config:
-    cfg = yaml.safe_load(yml_config)
+cfg = get_config("config.yml")
+sql_config = cfg['sql']
+metrics_config = cfg['metrics']
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sql_config = cfg['sql']
-
-if sql_config['engine'] == 'postgresql':
-    db_name = f'{sql_config["engine"]}://@{sql_config["host"]}/{sql_config["name"]}'
-else:  # Engine = sqlite
-    abs_path_to_db = os.path.join(BASE_DIR, sql_config["name"])
-    db_name = f'{sql_config["engine"]}:///{abs_path_to_db}'
+db_name = get_db_name(sql_config)
 
 ray.init(num_cpus=cfg['ray_multiprocessing']['num_cpu'], log_to_driver=False)
 
 
 @ray.remote
-@log_exceptions
 def get_notebook(notebook_id):
-    nb = Notebook(notebook_id, db_name)
-    return {'cells': nb.cells, 'metadata': nb.metadata, 'features': nb.features}
+    res = {
+        'metadata': None,
+        'cells': None,
+        'features': None
+    }
+
+    try:
+        nb = Notebook(notebook_id, db_name)
+        res['metadata'] = nb.metadata
+        res['cells'] = nb.cells
+        res['features'] = nb.features
+        return res
+
+    except Exception as e:
+        return None
 
 
 @timing
@@ -48,11 +54,11 @@ def main():
         for idx in pbar:
             notebooks.append(get_notebook(idx))
 
-    notebooks_features = [notebook['features'] for notebook in notebooks if notebook]
-    notebooks_cells = [notebook['cells'] for notebook in notebooks if notebook]
-    notebook_metadata = [notebook['metadata'] for notebook in notebooks if notebook]
+    notebooks_features = [ntb['features'] for ntb in notebooks if ntb]
+    notebooks_cells = [ntb['cells'] for ntb in notebooks if ntb]
+    notebook_metadata = [ntb['metadata'] for ntb in notebooks if ntb]
 
-    print(pd.DataFrame(notebooks_features).sloc.head(15))
+    print(pd.DataFrame(notebooks_features).sloc.head())
 
 
 if __name__ == '__main__':

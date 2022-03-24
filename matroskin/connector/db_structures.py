@@ -25,6 +25,7 @@ class CodeCellDb(base):
     __tablename__ = 'Code_cell'
     cell_id = Column(Integer, ForeignKey('Cell.cell_id'),
                      primary_key=True)
+    notebook_id = Column(Integer, ForeignKey('Notebook.notebook_id'))
     cell_num = Column(Integer)
     code_imports = Column(Text, default='')
     code_instructions_count = Column(Integer, default=0)
@@ -56,6 +57,7 @@ class MdCellDb(base):
     __tablename__ = 'Md_cell'
     cell_id = Column(Integer, ForeignKey('Cell.cell_id'),
                      primary_key=True)
+    notebook_id = Column(Integer, ForeignKey('Notebook.notebook_id'))
     cell_num = Column(Integer)
     sentences_count = Column(Integer, default=0)
     # words_count = Column(Integer, default=0)
@@ -82,7 +84,10 @@ class NotebookFeaturesDb(base):
     npavg = Column(Float, default=0)
 
     sloc = Column(Integer, default=0)
+    
     comments_count = Column(Integer, default=0)
+    extended_comments_count = Column(Integer, default=0)
+
     blank_lines_count = Column(Integer, default=0)
     classes = Column(Integer, default=0)
     classes_comments = Column(Integer, default=0)
@@ -90,6 +95,8 @@ class NotebookFeaturesDb(base):
     mean_override_methods = Column(Float, default=0)
     mean_attributes_count = Column(Float, default=0)
     comments_density = Column(Float, default=0)
+    extended_comments_density = Column(Float, default=0)
+
     comments_per_class = Column(Float, default=0)
 
     coupling_between_cells = Column(Float, default=0)
@@ -101,6 +108,9 @@ class NotebookFeaturesDb(base):
     API_functions_uses = Column(Integer, default=0)
     defined_functions_uses = Column(Integer, default=0)
     other_functions_uses = Column(Integer, default=0)
+
+    build_in_functions_uses = Column(Integer, default=0)
+    build_in_functions_count = Column(Integer, default=0)
 
 
 def create_db(db_name):
