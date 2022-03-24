@@ -57,6 +57,7 @@ def write_cells_to_db(conn, cells, notebook_id):
 
     for i, cell in enumerate(cells_to_db):
         processed_cells[i].cell_id = cell.cell_id
+        processed_cells[i].notebook_id = cell.notebook_id
 
     conn.add_all(processed_cells)
     conn.commit()

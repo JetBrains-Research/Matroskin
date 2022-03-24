@@ -1,6 +1,6 @@
 import os
 import yaml
-from notebook_analyzer import Notebook
+from matroskin import Notebook
 
 
 def read_expected_results(directory=None):

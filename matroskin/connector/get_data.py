@@ -50,14 +50,14 @@ class NotebookReaderAmazon(NotebookReader):
         try:
             notebook_string = self.download_notebook_amazon()
 
-        except urllib.error.URLError:
+        except (urllib.error.URLError, ValueError):
             notebook_string = self.download_notebook_file()
 
         return notebook_string
 
     def download_notebook_amazon(self):
-        host = 'http://github-notebooks-update1.s3-eu-west-1.amazonaws.com/'
-        link = host + self._metadata['name']
+        remote_storage = "http://github-notebooks-update1.s3-eu-west-1.amazonaws.com/"
+        link = remote_storage + self._metadata['name']
 
         with urllib.request.urlopen(link) as url:
             notebook_string = url.read().decode()

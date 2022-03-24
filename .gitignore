@@ -8,7 +8,7 @@ logs/
 *.idea
 *.ipynb_checkpoints
 *.pytest_cache
-*.db
-*.json
 .DS_Store
 venv
+#*.db
+#*.json

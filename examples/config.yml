@@ -1,25 +1,24 @@
-#    engine: postgresql
-#    host: localhost:0000
-#    name: newdb
-#    route_to_db: postgresql://@localhost:0000/newdb
+db:
+  create_database: True
 
 sql:
-    engine: sqlite
-    host: localhost:0000
-    name: ../databases/testdb.db
+   engine: sqlite
+   pg_name: postgres
+   password: postgres
+   host: localhost:5432
+   name: ../databases/example_db.db
 
 ray_multiprocessing:
-    num_cpu: 6
+    num_cpu: 3
 
 data:
-    route_to_notebooks: ../databases/ntbs_list.json
-    route_to_scripts: ../databases/20kk_scripts_abs.txt
+    route_to_notebooks: example_data/example_mapping.json
+    route_to_scripts:  example_data/example_mapping.json
     download_scripts: False
     download_notebooks: True
-    sample_size: 100
-    seed: 8
-
-    pbar_using_limit: 1000
+    sample_size: 5
+    seed: 12
+    progress_bar_limit: 50000
 
 metrics:
     'markdown':

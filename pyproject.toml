@@ -1,22 +1,20 @@
 [tool.poetry]
-name = "notebook_analyzer"
-version = "0.1.0"
+name = "matroskin"
+version = "0.1.8"
 description = ""
-authors = ["konstantgr <60608301+konstantgr@users.noreply.github.com>"]
+authors = ["Anonymous"]
 
 [tool.poetry.dependencies]
-python = "^3.7.1"
+python = "^3.8"
 SQLAlchemy = "^1.4.22"
 gast = "^0.5.2"
 radon = "^5.0.1"
 nbformat = "^5.1.3"
 numpy = "^1.21.1"
 ray = {extras = ["default"], version = "^1.5.2"}
-spacy = "^3.1.1"
 pandas = "^1.3.2"
 beniget = "^0.4.1"
 SQLAlchemy-Utils = "^0.37.8"
-
 [tool.poetry.dev-dependencies]
 
 [build-system]
