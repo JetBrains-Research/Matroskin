@@ -166,4 +166,4 @@ In order to add your own metric you need to:
 This project was made during a summer internship in [Machine Learning for 
 Software Engineering Research Group in JetBrains Research](https://research.jetbrains.org/groups/ml_methods/). <br/>
 Supervisor and contributor of this project is [Sergey Titov](https://github.com/TitovSergey). <br/>
-Author: [Konstantin Grotov](https://github.com/konstantgr), St. Petersburg State University.
+Author: [Konstantin Grotov](https://github.com/konstantgr), ITMO University.
