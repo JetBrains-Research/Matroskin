@@ -25,7 +25,7 @@ jobs:
           poetry build
       - name: Intall pacakge (and dependencies)
         run: |
-          pip install dist/notebook_analyzer-0.1.0-py3-none-any.whl
+          pip install dist/matroskin-0.1.8-py3-none-any.whl
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
