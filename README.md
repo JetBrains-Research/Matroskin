@@ -188,4 +188,4 @@ Supervisor and contributor: [Sergey Titov](https://github.com/TitovSergey).
 ## Contacts
 
 If you have any questions or suggestions about the work, feel free to create an issue
-or contacnt Sergey Titov at [sergey.titov@jetbrains.com](mailto:sergey.titov@jetbrains.com).
+or contact Sergey Titov at [sergey.titov@jetbrains.com](mailto:sergey.titov@jetbrains.com).
