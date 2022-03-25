@@ -1,69 +1,82 @@
-# Matroskin — library for large scale Jupyter notebook analysis.
-Matroskin is a library for analyzing notebooks and saving the summary data in a convenient format. 
-This library uses multiprocessing and can process Jupyter notebooks and Python scripts on a local device. 
-You can configure your own local database, change multiprocessing settings, sample sizes, and structural metrics that will be processed.
+# Matroskin
+Matroskin is a library for analyzing Jupyter notebooks on a large scale and saving the summary data in a convenient format. 
+The library employs multiprocessing and can process Jupyter notebooks and usual Python files on a local device. 
+You can configure your own local database, change multiprocessing settings, sample sizes, and structural metrics that will be calculated for the files.
 
 ## Getting Started
-To start using Matroskin, install the library using pip:<br/>
-`pip install dist/matroskin-0.1.7-py3-none-any.whl` 
-or build it using `poetry build` .
+To start using Matroskin, install the library using pip:
 
-The ["examples" folder](examples/) contains 2 examples of using the library --- [performing analysis with creating a database](examples/download_notebooks.py) and [reading data from the existing database](examples/get_notebooks.py).
-Prerequisites for examples might be found there in the [requirements.txt](examples/requirements.txt).
-`pip install -r examples/requirements.txt`
+```bash
+pip install dist/matroskin-0.1.7-py3-none-any.whl
+``` 
 
+or build it using 
 
-To start examples, run them from [examples](examples/) folder.<br/>
-`python3 download_noteboooks.py`
+```bash
+poetry build
+```
+
+The ["examples"](examples/) directory contains two examples of using the library --- [performing analysis with creating a database](examples/download_notebooks.py) and [reading data from the existing database](examples/get_notebooks.py).
+The prerequisites for examples might be found the corresponding [requirements.txt](examples/requirements.txt) file, and installed via:
+
+```bash
+pip install -r examples/requirements.txt
+```
+
+To use the examples, run them from the [examples](examples/) directory:
+
+```bash
+python3 download_noteboooks.py
+```
 
 ## Configuration
-Matroskin provides developers with great freedom to configure various parameters.
-The example of [configuration](examples/config.yml) file located in [examples](examples/) folder.
+Matroskin provides developers with a lot of ways to configure various parameters.
+The example of a [configuration file](examples/config.yml) is also located in the [examples](examples/) directory.
 
 The configuration file consists of the following fields:
-1. **`sql`** — a field that describes the parameters of the resulted database. A more detailed description of the parameters is described in the **Data** section.
-2. **`data`** — a field that describes the parameters of input data (mapping files, which contain routes to Jupyter notebooks / Scripts, sample size of data and other extra parameters).
-3. **`ray`** — a field that describes the number of CPU cores used during analyzing. In examples we used the ray library for multiprocessing.
-4. **`metrics`** — a field that describes what metrics should be implemented during analysis. All metrics are divided into 3 types: metrics applicable to markdown cells (**`markdown`**  field), code cells (**`code`** field) and the entire notebook (**`notebook`**  field).
+1. **`sql`** — a field that describes the parameters of the resulting database. A more detailed description of the parameters can be found below in the **Data** section.
+2. **`data`** — a field that describes the parameters of the input data (mapping files that contain routes to Jupyter notebooks or Scripts, sample size of the data, and other parameters).
+3. **`ray`** — a field that describes the number of CPU cores used during the analysis. In the examples, we used the `ray` library for multiprocessing.
+4. **`metrics`** — a field that describes what metrics should be calculated during the analysis. All metrics are divided into 3 types: metrics applicable to Markdown cells (**`markdown`**  field), code cells (**`code`** field), and the entire notebook (**`notebook`**  field).
 
 
 ## Matroskin architecture
 ### Initialization
-Matroskin is designed to work with the `Notebook` data type. To initialize a `Notebook`, it is enough to pass an absolute path to `.ipynb` or `.py` file `name` or the path to the file on a remote Amazon server. 
-In addition to the file path, you can additionally specify the path to the database `db_name`, where you can eventually save the results of the study or the notebook itself in a processed form.
+Matroskin is designed to work with the `Notebook` data type. To initialize a `Notebook`, it is enough to pass an absolute path to the `.ipynb` or `.py` file `name` or the path to the file on a remote Amazon server. 
+In addition to the file path, you can additionally specify the path to the database `db_name`, where you can eventually save the results of the study or the notebook itself in a processed form:
 ```python
 nb = Notebook(name, db_name)
 ```
-*It is also possible to create `Notebook` class for a Python script. In this case, it will be perceived as a notebook with one code cell.*
+*It is possible to create a `Notebook` class for a usual Python script. In this case, it will be perceived as a notebook with one code cell.*
 
-During initializing, Matroskin transforms Jupyter notebook from Json representation to the object with following attributes:
-1.  **`metadata`** — dictionary, which contains information about name of notebook and language properties.
-2.  **`cells`** — list of individual cells. Each cell after initialization has an attributes `type` (markdown or code) `source` (source code of the cell) and `numb` (order number of cell in notebook). After applying the metrics, they are stored in new keys of the dictionary of the corresponding cells.
-3. **`features`** — dictionary, which contains results of metrics for whole notebook. 
-Immediately after initialization is an empty dictionary.
-4. \*  **`engine`** — engine of the database if `db_name` was passed.
+During the initialization, Matroskin transforms the Jupyter notebook from JSON representation to the object with following attributes:
+1.  **`metadata`** — a dictionary that contains information about the name of the notebook and the language properties.
+2.  **`cells`** — a list of individual cells. Each cell has an attribute `type` (markdown or code), `source` (source code of the cell), and `numb` (the ordered number of a cell in the notebook). After calculating the metrics, they are stored in new keys of the dictionary of the corresponding cells.
+3. **`features`** — a dictionary that contains the results of calculating the metrics for the entire notebook. 
+Immediately after the initialization, this dictionary is empty.
+4. \*  **`engine`** — the engine of the database, if `db_name` was passed.
 
-### Metrics processing
+### Calculating the metrics
 
-Next, when a notebook has been initialized, metrics could be processed. 
-In order to calculate certain metrics, you need to pass a configuration dictionary similar to the one stored in the configuration file in the **`metrics`** field. Then, you can calculate cell's metrics 
+Next, when a notebook has been initialized, the metrics can be calculated. 
+In order to calculate certain metrics, you need to pass a configuration dictionary similar to the one stored in the configuration file in the **`metrics`** field. Then, you can calculate the cell's metrics: 
 ```python
 nb.run_tasks(config)
 ```
-and metrics for whole notebook
+and metrics for entire notebook:
 ```python
 nb.aggregate_tasks(config)
 ```
 
 ### Writing to the database
-Save all results to the database
+Finally, you can save all the results to the database:
 ```python
 nb.write_to_db()
 ```
-More about databases described in **Data** section.
+The databases are described in more detail in the **Data** section.
 
 ## Data
-Matroskin allows you to store data in a sqlite database or a Postgres database. the database consists of the following tables:
+Matroskin allows you to store the data in a SQLite database or a Postgres database. The database consists of the following tables:
 ```
 +-------------------+
 |      database     |
@@ -75,8 +88,8 @@ Matroskin allows you to store data in a sqlite database or a Postgres database. 
 | Md_cell           |
 +-------------------+
 ```
-1. **`Notebook`** — table, which stores name, metadata and unique id of the notebook
-2. **`Cell`**  — table, which stores unique id of the cell and id of corresponding notebook.
+1. **`Notebook`** — a table that stores the name, metadata, and unique ID of each notebook.
+2. **`Cell`**  — a table that stores the unique ID of the cell and the ID of corresponding notebook for each cell.
 ```
 +-------------------+	+-------------+
 |      Notebook     |	|    Cell     |
@@ -87,8 +100,8 @@ Matroskin allows you to store data in a sqlite database or a Postgres database. 
 | notebook_version  |	
 +-------------------+	
 ```
-3. **`Code_cell`**, **`Md_cell`** — tables, which stores unique id of cell and metrics, applicable for code/markdown cells.
-5. **`Notebook_features`** — table, which stores unique id of notebook and metrics, applicable for whole notebook.
+3-4. **`Code_cell`** and **`Md_cell`** — tables that store the unique ID of a cell and metrics, one for code metrics and one for Markdown metrics.
+5. **`Notebook_features`** — a table that stores a unique ID of the notebook and metrics applicable for the entire notebook.
 ```
 +-------------------------+	+----------------------------+
 |   Code_cell / Md_cell   |	|      Notebook_features     |
@@ -102,15 +115,16 @@ Matroskin allows you to store data in a sqlite database or a Postgres database. 
 +-------------------------+	
 ```
 
-To configure database you should change [configuration](examples/config.yml) file located in [examples](examples/) folder.
-Database parameters stored in field **`sql`**: 
-1. **`engine`** (`sqlite` or `postgres`) — type of database.
-2.   **`pg_name`** — name of postgres database
-3.   **`password`** — password to database
-4.   **`host`** — host of database
-5.   **`name`** — name of database
+To configure the database, you should change the [configuration](examples/config.yml) file located in the [examples](examples/) directory.
+The parameters of the database are stored in the **`sql`** field: 
+1. **`engine`** (`sqlite` or `postgres`) — the type of the database.
+2. **`pg_name`** — the name of the Postgres database.
+3. **`password`** — the password to the database.
+4. **`host`** — the host of the database.
+5. **`name`** — the name of the database.
 
-Also [configuration](examples/config.yml) file contains field **`db`** with the parameter **`create_database`** which is responsible for whether a new database needs to be created or not.
+Also, the [configuration](examples/config.yml) file contains the field **`db`** with the parameter **`create_database`**, which is responsible for whether a new database needs to be created or not.
+
 ## Metrics
 ### Built-in metrics
 ```
@@ -142,29 +156,36 @@ Also [configuration](examples/config.yml) file contains field **`db`** with the 
 | blank_lines_count          |	| build_in_functions_count   |	
 +----------------------------+	+----------------------------+
 ```
-*A more detailed description of the metrics could be found in the paper.*
+*You can find the detailed description of the metrics in the paper.*
+
 ### Adding custom metrics
 
-It is possible to add your own metrics, both for both types of cells, and for the entire notebook.
+It is possible to add your own metrics, for both types of cells and for the entire notebook.
 
-The metrics that are calculated for the cells are in files [`code_processor.py`](matroskin/processors/code_processor.py) 
+The metrics that are calculated for the cells are located in files [`code_processor.py`](matroskin/processors/code_processor.py) 
 and [`md_processor.py`](matroskin/processors/md_processor.py), respectively.
-In order to add your own metric you need to:
-1. Add your function as a class method (`CodeProcessor` or `MdProcessor`). Requirements for methods — they must accept a dictionary 
-   that describes one cell `cell` and return a dictionary of calculated metrics.
-2. Add this function to `task_mapping` dictionary.
-3. In the resulted dictionary, the name of the key must be the same with the name of column in the database (if you want to store it in DB).
+In order to add your own metric, you need to:
+1. Add your function as a class method (`CodeProcessor` or `MdProcessor`). Requirements for methods: they must receive a dictionary 
+   that describes one cell `cell` and return a dictionary of the calculated metrics.
+2. Add this function to the `task_mapping` dictionary.
+3. In the resulting dictionary, the name of the key must be the same as the name of the column in the database (if you want to store it in DB).
 
 
-The metrics that are calculated for the whole notebook are in files [`notebook.py`](matroskin/notebook/notebook.py).
-In order to add your own metric you need to:
-1. Add your function as a method of `Aggregator` class. `Aggregator` class stores notebooks with cells metrics as Pandas DataFrame `cells_df`, where columns are cell's features. 
-2. Add this function to `task_mapping` dictionary.
-3. In the resulted dictionary the name of the key must be the same with the name of column in database (if you want to store it in DB).
+The metrics that are calculated for the whole notebook are located in the [`notebook.py`](matroskin/notebook/notebook.py) file.
+In order to add your own metric, you need to:
+1. Add your function as a method of the `Aggregator` class. `Aggregator` class stores notebooks with metrics as a Pandas DataFrame `cells_df`, where columns represent each cell's features. 
+2. Add this function to the `task_mapping` dictionary.
+3. In the resulting dictionary, the name of the key must be the same as the name of column in database (if you want to store it in DB).
 
    
 ## Credits
-This project was made during a summer internship in [Machine Learning for 
-Software Engineering Research Group in JetBrains Research](https://research.jetbrains.org/groups/ml_methods/). <br/>
-Supervisor and contributor of this project is [Sergey Titov](https://github.com/TitovSergey). <br/>
-Author: [Konstantin Grotov](https://github.com/konstantgr), ITMO University.
+This project was carried out during the summer internship in the [Machine Learning Methods in Software Engineering](https://research.jetbrains.org/groups/ml_methods/) Group at JetBrains Research.
+
+Main author: [Konstantin Grotov](https://github.com/konstantgr), ITMO University.
+
+Supervisor and contributor: [Sergey Titov](https://github.com/TitovSergey).
+
+## Contacts
+
+If you have any questions or suggestions about the work, feel free to create an issue
+or contacnt Sergey Titov at [sergey.titov@jetbrains.com](mailto:sergey.titov@jetbrains.com).
