@@ -63,7 +63,7 @@ In order to calculate certain metrics, you need to pass a configuration dictiona
 ```python
 nb.run_tasks(config)
 ```
-and metrics for entire notebook:
+and metrics for the entire notebook:
 ```python
 nb.aggregate_tasks(config)
 ```
@@ -171,7 +171,7 @@ In order to add your own metric, you need to:
 3. In the resulting dictionary, the name of the key must be the same as the name of the column in the database (if you want to store it in DB).
 
 
-The metrics that are calculated for the whole notebook are located in the [`notebook.py`](matroskin/notebook/notebook.py) file.
+The metrics that are calculated for the entire notebook are located in the [`notebook.py`](matroskin/notebook/notebook.py) file.
 In order to add your own metric, you need to:
 1. Add your function as a method of the `Aggregator` class. `Aggregator` class stores notebooks with metrics as a Pandas DataFrame `cells_df`, where columns represent each cell's features. 
 2. Add this function to the `task_mapping` dictionary.
