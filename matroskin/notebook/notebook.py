@@ -4,6 +4,7 @@ from itertools import combinations
 from typing import Tuple, Set
 import builtins
 import types
+import yaml
 
 from ..processors import MdProcessor
 from ..processors import CodeProcessor
@@ -20,6 +21,12 @@ def flatten(dictionary):
             output[key] = value
 
     return output
+
+
+def get_config(filename):
+    with open(filename, "r") as yml_config:
+        cfg = yaml.safe_load(yml_config)
+        return cfg
 
 
 class Aggregator:
@@ -218,8 +225,8 @@ class Notebook(object):
     features = {}
     nlp = None
 
-    def __init__(self, name, db_name=""):
-        connector = Connector(name, db_name)
+    def __init__(self, name, db_name="", stream_data=False):
+        connector = Connector(name, db_name, stream_data=stream_data)
 
         self.engine = connector.engine
         self.metadata = connector.data.metadata

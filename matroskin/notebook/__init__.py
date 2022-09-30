@@ -1,5 +1,5 @@
-from .notebook import Notebook
+from .notebook import Notebook, flatten, get_config
 
 __all__ = [
-    "Notebook",
+    "Notebook", 'flatten', 'get_config'
 ]

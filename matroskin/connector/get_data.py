@@ -175,7 +175,7 @@ class NotebookReaderDb(NotebookReader):
         )
 
 
-class ScriptReader(NotebookReader):
+class ScriptReaderFile(NotebookReader):
     _metadata = {}
     _cells = []
 
@@ -200,3 +200,23 @@ class ScriptReader(NotebookReader):
         if len(source) > 20_000:
             source = ''
         return {'type': 'code', 'num': 1, 'source': source}
+
+class ScriptReaderStream(NotebookReader):
+    _metadata = {}
+    _cells = []
+
+    def __init__(self, name, text):
+        self._metadata['name'] = name
+        self._metadata['language'], self._metadata['version'] = 'python', 'None'
+        self._cells = [self.get_script_source(text)]
+
+    # @property
+    # def metadata(self):
+    #     return self._metadata
+    #
+    # @property
+    # def cells(self):
+    #     return self._cells
+
+    def get_script_source(self, text):
+        return {'type': 'code', 'num': 1, 'source': text}
