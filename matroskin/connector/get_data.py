@@ -38,13 +38,13 @@ class NotebookReaderAmazon(NotebookReader):
         self._metadata['language'], self._metadata['version'] = self.get_kernel(notebook)
         self._cells = self.get_cells_from_notebook(notebook)
 
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def cells(self):
-        return self._cells
+    # @property
+    # def metadata(self):
+    #     return self._metadata
+    #
+    # @property
+    # def cells(self):
+    #     return self._cells
 
     def download_notebook(self):
         try:
@@ -102,18 +102,18 @@ class NotebookReaderDb(NotebookReader):
             self._metadata = self.get_notebook_from_db(conn)
             self._cells = self.get_cells_from_db(conn)
             self._features = self.get_notebook_features_from_db(conn)
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def cells(self):
-        return self._cells
-
-    @property
-    def features(self):
-        return self._features
+    #
+    # @property
+    # def metadata(self):
+    #     return self._metadata
+    #
+    # @property
+    # def cells(self):
+    #     return self._cells
+    #
+    # @property
+    # def features(self):
+    #     return self._features
 
     def get_notebook_from_db(self, conn):
         ntb_row = conn.query(NotebookDb). \
@@ -184,13 +184,13 @@ class ScriptReaderFile(NotebookReader):
         self._metadata['language'], self._metadata['version'] = 'python', 'None'
         self._cells = [self.get_script_source()]
 
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def cells(self):
-        return self._cells
+    # @property
+    # def metadata(self):
+    #     return self._metadata
+    #
+    # @property
+    # def cells(self):
+    #     return self._cells
 
     def get_script_source(self):
         path = os.path.abspath(self._metadata['name'])
@@ -200,6 +200,7 @@ class ScriptReaderFile(NotebookReader):
         if len(source) > 20_000:
             source = ''
         return {'type': 'code', 'num': 1, 'source': source}
+
 
 class ScriptReaderStream(NotebookReader):
     _metadata = {}
