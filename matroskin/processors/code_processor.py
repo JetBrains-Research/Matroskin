@@ -5,15 +5,21 @@ from .cell_processor import CellProcessor
 from .node_visitor import ComplexityVisitor, OOPVisitor
 
 
-def get_ast(cell_source):
-    try:
-        code_ast = ast.parse(cell_source)
-        return code_ast
-    except SyntaxError as e:
-        code_string = cell_source.splitlines()
-        del code_string[e.lineno - 1]
-        code_string = '\n'.join(code_string)
-        return get_ast(code_string)
+def get_ast(cell_source, error_counter=100):
+
+    code_ast = ast.parse('')
+
+    for i in range(error_counter):
+        try:
+            code_ast = ast.parse(cell_source)
+            return code_ast
+        except SyntaxError as e:
+            code_string = cell_source.splitlines()
+            del code_string[e.lineno - 1]
+            cell_source = '\n'.join(code_string)
+            # error_counter += 1
+            # return get_ast(code_string, error_counter)
+    return code_ast
 
 
 class CodeProcessor(CellProcessor):
