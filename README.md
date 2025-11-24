@@ -1,4 +1,7 @@
 # Matroskin
+
+![Research](https://jb.gg/badges/research-plastic.svg)
+
 Matroskin is a library for analyzing Jupyter notebooks on a large scale and saving the summary data in a convenient format. 
 The library employs multiprocessing and can process Jupyter notebooks and usual Python files on a local device. 
 You can configure your own local database, change multiprocessing settings, sample sizes, and structural metrics that will be calculated for the files.
